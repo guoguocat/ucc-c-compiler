@@ -146,10 +146,14 @@ int decl_size(decl *d)
 				case decl_desc_array:
 				{
 					int sz;
-					UCC_ASSERT(expr_kind(dp->bits.array_size, val), "decl array size not constant");
-					sz = dp->bits.array_size->val.iv.val;
-					UCC_ASSERT(sz, "incomplete array size attempt");
-					mul *= sz;
+					if(dp->bits.array.vla){
+						ICE("decl_size() for vla");
+					}else{
+						UCC_ASSERT(expr_kind(dp->bits.array.size, val), "decl array size not constant");
+						sz = dp->bits.array.size->val.iv.val;
+						UCC_ASSERT(sz, "incomplete array size attempt");
+						mul *= sz;
+					}
 					break;
 				}
 			}
@@ -358,12 +362,23 @@ int decl_has_array(decl *d)
 	return 0;
 }
 
-decl_desc *decl_array_first_incomplete(decl *d)
+decl_desc *decl_array_incomplete(decl *d)
 {
 	decl_desc *dp;
 
 	ITER_DESC_TYPE(d, dp, decl_desc_array)
-		if(!dp->bits.array_size->val.iv.val)
+		if(!dp->bits.array.vla && !dp->bits.array.size->val.iv.val)
+			return dp;
+
+	return NULL;
+}
+
+decl_desc *decl_desc_vla(decl *d)
+{
+	decl_desc *dp;
+
+	ITER_DESC_TYPE(d, dp, decl_desc_array)
+		if(dp->bits.array.vla)
 			return dp;
 
 	return NULL;
@@ -385,7 +400,8 @@ int decl_has_incomplete_array(decl *d)
 
 	return tail
 	&& tail->type == decl_desc_array
-	&& tail->bits.array_size->val.iv.val == 0;
+	&& tail->bits.array.vla == 0
+	&& tail->bits.array.size->val.iv.val == 0;
 }
 
 void decl_desc_cut_loose(decl_desc *dp)
@@ -438,7 +454,7 @@ void decl_conv_array_ptr(decl *d)
 	decl_desc *dp;
 
 	ITER_DESC_TYPE(d, dp, decl_desc_array){
-		expr_free(dp->bits.array_size);
+		expr_free(dp->bits.array.size);
 		dp->type = decl_desc_ptr;
 		dp->bits.qual = qual_none;
 	}
@@ -545,7 +561,10 @@ void decl_desc_add_str(decl_desc *dp, char **bufp, int sz)
 			BUF_ADD("()");
 			break;
 		case decl_desc_array:
-			BUF_ADD("[%ld]", dp->bits.array_size->val.iv.val);
+			if(dp->bits.array.vla)
+				BUF_ADD("[vla]");
+			else
+				BUF_ADD("[%ld]", dp->bits.array.size->val.iv.val);
 			break;
 	}
 #undef BUF_ADD

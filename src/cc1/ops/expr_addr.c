@@ -24,7 +24,8 @@ void fold_expr_addr(expr *e, symtable *stab)
 		TT = decl_new();
 
 		TT->desc = decl_desc_array_new(e->tree_type, NULL);
-		TT->desc->bits.array_size = expr_new_val(e->array_store->len);
+		/* FIXME: vla? */
+		TT->desc->bits.array.size = expr_new_val(e->array_store->len);
 
 		TT->type->store = store_static;
 		TT->type->qual  = qual_const;

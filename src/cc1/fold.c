@@ -157,12 +157,21 @@ void fold_decl_desc(decl_desc *dp, symtable *stab, decl *root)
 		case decl_desc_array:
 		{
 			long v;
-			fold_expr(dp->bits.array_size, stab);
-			if((v = dp->bits.array_size->val.iv.val) < 0)
-				die_at(&dp->where, "negative array length %ld", v);
+			int vla;
 
-			if(v == 0 && !root->init)
-				die_at(&dp->where, "incomplete array");
+			fold_expr(dp->bits.array.size, stab);
+
+			vla = dp->bits.array.vla = !expr_kind(dp->bits.array.size, val);
+
+			if(!vla){
+				if((v = dp->bits.array.size->val.iv.val) < 0)
+					die_at(&dp->where, "negative array length %ld", v);
+
+				if(v == 0 && !root->init)
+					die_at(&dp->where, "incomplete array");
+			}
+
+			break;
 		}
 
 		case decl_desc_ptr:
@@ -261,12 +270,15 @@ void fold_coerce_assign(decl *d, expr *assign, int *ok)
 				*ok = 1;
 
 				/*
-				* for now just check the counts - this will break for:
-				* struct { int i; char c; int j } = { 1, 2, 3 };
-				*                   ^
-				* in global scope
-				*/
-				narray = dp->bits.array_size->val.iv.val;
+				 * for now just check the counts - this will break for:
+				 * struct { int i; char c; int j } = { 1, 2, 3 };
+				 *                   ^
+				 * in global scope
+				 */
+				if(dp->bits.array.vla)
+					ICE("vla");
+
+				narray = dp->bits.array.size->val.iv.val;
 				nmembers = sue_nmembers(d->type->sue);
 
 				if(narray != nmembers){
@@ -392,9 +404,9 @@ void fold_decl(decl *d, symtable *stab)
 
 		if(decl_has_incomplete_array(d) && d->init->array_store){
 			/* complete the decl */
-			decl_desc *dp = decl_array_first_incomplete(d);
+			decl_desc *dp = decl_array_incomplete(d);
 
-			dp->bits.array_size->val.iv.val = d->init->array_store->len;
+			dp->bits.array.size->val.iv.val = d->init->array_store->len;
 		}
 
 		/* type check for statics + globals */

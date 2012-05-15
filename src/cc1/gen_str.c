@@ -93,10 +93,14 @@ void print_decl_desc_eng(decl_desc *dp)
 		}
 
 		case decl_desc_array:
-			if(dp->bits.array_size){
+			if(dp->bits.array.vla){
+				fputs("vla[]", cc1_out);
+			}else if(dp->bits.array.size){
 				fputs("array[", cc1_out);
-				print_expr_val(dp->bits.array_size);
+				print_expr_val(dp->bits.array.size);
 				fputs("] of ", cc1_out);
+			}else{
+				fputs("array[]", cc1_out);
 			}
 			break;
 	}
@@ -162,14 +166,16 @@ void print_decl_desc(decl_desc *dp, decl *d)
 			break;
 
 		case decl_desc_array:
-		{
-			int sz = dp->bits.array_size->val.iv.val;
-			if(sz)
-				fprintf(cc1_out, "[%d]", sz);
-			else
-				fprintf(cc1_out, "[]");
-			break;
-		}
+			if(dp->bits.array.vla){
+				fprintf(cc1_out, "[vla]");
+			}else{
+				int sz = dp->bits.array.size->val.iv.val;
+				if(sz)
+					fprintf(cc1_out, "[%d]", sz);
+				else
+					fprintf(cc1_out, "[]");
+				break;
+			}
 
 		case decl_desc_ptr:
 			break;

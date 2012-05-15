@@ -8,6 +8,21 @@
 #include "fold_sym.h"
 #include "../util/platform.h"
 
+static int symtab_fold_vla(symtable *tab, int current)
+{
+	decl **diter;
+
+	for(diter = tab->decls; *diter; diter++){
+		decl *d = *diter;
+		decl_desc *vla = decl_desc_vla(d);
+		if(vla){
+			ICW("handle vla for %s", d->spel);
+		}
+	}
+
+	return current;
+}
+
 int symtab_fold(symtable *tab, int current)
 {
 	const int this_start = current;
@@ -19,6 +34,8 @@ int symtab_fold(symtable *tab, int current)
 
 		arg_offset = 0;
 
+		current += symtab_fold_vla(tab, current);
+
 		/* need to walk backwards for args */
 		for(diter = tab->decls; *diter; diter++);
 
@@ -27,7 +44,12 @@ int symtab_fold(symtable *tab, int current)
 			/*enum type_primitive last = type_int; TODO: packing */
 
 			if(s->type == sym_local && s->decl->type->store == store_auto){
-				int siz = decl_size(s->decl);
+				int siz;
+
+				if(decl_desc_vla(s->decl))
+					continue; /* handled above */
+
+				siz = decl_size(s->decl);
 
 				if(siz <= word_size)
 					s->offset = current;

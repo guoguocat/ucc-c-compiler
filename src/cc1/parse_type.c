@@ -376,7 +376,7 @@ decl_desc *parse_decl_desc_array(enum decl_mode mode, char **sp)
 
 		dp_new = decl_desc_array_new(NULL, NULL);
 
-		dp_new->bits.array_size = size;
+		dp_new->bits.array.size = size;
 
 		dp_new->child = dp;
 

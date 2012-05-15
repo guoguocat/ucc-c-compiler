@@ -74,7 +74,11 @@ struct decl_desc
 			decl **arglist;
 			int variadic;
 		} *func;
-		expr *array_size;      /* int (x[5][2])[2] */
+		struct
+		{
+			expr *size;  /* int (x[5][2])[2] */
+			int vla;     /* int a = 5; int b[a]; */
+		} array;
 	} bits;
 
 	decl_desc *child;
@@ -174,8 +178,9 @@ decl *decl_ptr_depth_inc(decl *d);
 decl *decl_ptr_depth_dec(decl *d, where *from);
 decl *decl_func_deref(decl *d, funcargs **pfuncargs);
 
-decl_desc *decl_array_first_incomplete(decl *d);
+decl_desc *decl_array_incomplete(decl *d);
 decl_desc *decl_array_first(decl *d);
+decl_desc *decl_desc_vla(decl *d);
 
 int decl_attr_present(decl_attr *, enum decl_attr_type);
 
