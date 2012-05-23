@@ -149,7 +149,7 @@ int decl_size(decl *d)
 					if(dp->bits.array.vla){
 						ICE("decl_size() for vla");
 					}else{
-						UCC_ASSERT(expr_kind(dp->bits.array.size, val), "decl array size not constant");
+						/* don't check dp->bits.array_size - it could be any expr */
 						sz = dp->bits.array.size->val.iv.val;
 						UCC_ASSERT(sz, "incomplete array size attempt");
 						mul *= sz;
