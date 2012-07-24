@@ -89,18 +89,19 @@ void fold_decl_desc(decl_desc *dp, symtable *stab, decl *root)
 
 		case decl_desc_array:
 		{
-			long v;
+			intval sz;
 			int vla;
 
 			fold_expr(dp->bits.array.size, stab);
+			const_fold_need_val(dp->bits.array.size, &sz);
 
 			vla = dp->bits.array.vla = !expr_kind(dp->bits.array.size, val);
 
 			if(!vla){
-				if((v = dp->bits.array.size->val.iv.val) < 0)
-					DIE_AT(&dp->where, "negative array length %ld", v);
+				if(sz.val < 0)
+					DIE_AT(&dp->where, "negative array length %ld", sz.val);
 
-				if(v == 0 && !root->init)
+				if(sz.val == 0 && !root->init)
 					DIE_AT(&dp->where, "incomplete array");
 			}
 
@@ -143,14 +144,10 @@ void fold_enum(struct_union_enum_st *en, symtable *stab)
 				defval++;
 
 		}else{
-			enum constyness type;
 			intval iv;
 
 			fold_expr(e, stab);
-			const_fold(e, &iv, &type);
-
-			if(type != CONST_WITH_VAL)
-				DIE_AT(&e->where, "enum value not a constant integer");
+			const_fold_need_val(e, &iv);
 
 			defval = bitmask ? iv.val << 1 : iv.val + 1;
 		}
@@ -213,7 +210,10 @@ void fold_coerce_assign(decl *d, expr *assign, int *ok)
 				ICE("TODO: struct init from ^");
 			}else{
 				decl_desc *dp = decl_array_first(assign->tree_type);
-				int narray, nmembers;
+				int nmembers;
+				intval iv;
+
+				const_fold_need_val(dp->bits.array.size, &iv);
 
 				*ok = 1;
 
@@ -226,13 +226,12 @@ void fold_coerce_assign(decl *d, expr *assign, int *ok)
 				if(dp->bits.array.vla)
 					ICE("vla");
 
-				narray = dp->bits.array.size->val.iv.val;
 				nmembers = sue_nmembers(d->type->sue);
 
-				if(narray != nmembers){
+				if(iv.val != nmembers){
 					WARN_AT(&assign->where,
-							"mismatching member counts for struct init (struct of %d vs array of %d)",
-							nmembers, narray);
+							"mismatching member counts for struct init (struct of %d vs array of %ld)",
+							nmembers, iv.val);
 					/* TODO: zero the rest */
 				}else if(!d->sym || d->sym->type == sym_global){
 					sue_member **i;
@@ -475,13 +474,17 @@ void fold_symtab_scope(symtable *stab)
 		fold_sue(*sit, stab);
 }
 
-void fold_test_expr(expr *e, const char *stmt_desc)
+void fold_need_expr(expr *e, const char *stmt_desc, int is_test)
 {
 	if(!decl_ptr_depth(e->tree_type) && e->tree_type->type->primitive == type_void)
 		DIE_AT(&e->where, "%s requires non-void expression", stmt_desc);
 
 	if(!e->in_parens && expr_kind(e, assign))
 		cc1_warn_at(&e->where, 0, 1, WARN_TEST_ASSIGN, "testing an assignment in %s", stmt_desc);
+
+	if(is_test && !decl_is_bool(e->tree_type))
+		cc1_warn_at(&e->where, 0, 1, WARN_TEST_BOOL, "testing a non-boolean expression, %s, in %s",
+				decl_to_str(e->tree_type), stmt_desc);
 
 	fold_disallow_st_un(e, stmt_desc);
 }
