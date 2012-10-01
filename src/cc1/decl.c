@@ -816,7 +816,10 @@ void decl_desc_add_str(decl_desc *dp, char **bufp, int sz)
 
 				const_fold_need_val(dp->bits.array.size, &iv);
 
-				BUF_ADD("[%ld]", iv.val);
+				if(iv.val == 0)
+					BUF_ADD("[]");
+				else
+					BUF_ADD("[%ld]", iv.val);
 			}
 			break;
 	}
