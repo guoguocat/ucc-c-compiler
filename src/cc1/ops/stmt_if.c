@@ -45,23 +45,30 @@ void fold_stmt_if(stmt *s)
 
 void gen_stmt_if(stmt *s)
 {
-	char *lbl_else = asm_label_code("else");
-	char *lbl_fi   = asm_label_code("fi");
+	char *lbl_fi = NULL;
 
-	gen_expr(s->expr, s->symtab);
-	asm_temp(1, "pop rax");
+	if(!const_expr_and_zero(s->expr)){
+		char *lbl_else = asm_label_code("else");
+		lbl_fi = asm_label_code("fi");
 
-	asm_temp(1, "test rax, rax");
-	asm_temp(1, "jz %s", lbl_else);
-	gen_stmt(s->lhs);
-	asm_temp(1, "jmp %s", lbl_fi);
-	asm_label(lbl_else);
+		gen_expr(s->expr, s->symtab);
+		asm_temp(1, "pop rax");
+
+		asm_temp(1, "test rax, rax");
+		asm_temp(1, "jz %s", lbl_else);
+		gen_stmt(s->lhs);
+		asm_temp(1, "jmp %s", lbl_fi);
+		asm_label(lbl_else);
+		free(lbl_else);
+	}
+
 	if(s->rhs)
 		gen_stmt(s->rhs);
-	asm_label(lbl_fi);
 
-	free(lbl_else);
-	free(lbl_fi);
+	if(lbl_fi){
+		asm_label(lbl_fi);
+		free(lbl_fi);
+	}
 }
 
 static int if_passable(stmt *s)

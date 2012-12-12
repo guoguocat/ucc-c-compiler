@@ -14,7 +14,7 @@ void fold_stmt_while(stmt *s)
 {
 	symtable *test_symtab;
 
-	test_symtab = fold_stmt_test_init_expr(s, "which");
+	test_symtab = fold_stmt_test_init_expr(s, "while");
 
 	s->lbl_break    = asm_label_flow("while_break");
 	s->lbl_continue = asm_label_flow("while_cont");
@@ -29,6 +29,9 @@ void fold_stmt_while(stmt *s)
 
 void gen_stmt_while(stmt *s)
 {
+	if(const_expr_and_zero(s->expr))
+		return;
+
 	asm_label(s->lbl_continue);
 	gen_expr(s->expr, s->symtab); /* TODO: optimise */
 	asm_temp(1, "pop rax");
