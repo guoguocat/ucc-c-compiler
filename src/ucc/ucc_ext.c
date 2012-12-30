@@ -10,6 +10,7 @@
 #include "ucc.h"
 #include "../util/alloc.h"
 #include "../util/dynarray.h"
+#include "../util/io.h"
 #include "cfg.h"
 
 #ifndef UCC_NASM
@@ -191,7 +192,7 @@ void cat(char *fnin, char *fnout, int append)
 		die("open %s:", fnin);
 
 	if(fnout){
-		out = fopen(fnout, append ? "a" : "w");
+		out = fopen_w_chmod(fnout, append ? OPEN_APPEND : OPEN_RW);
 		if(!out)
 			die("open %s:", fnout);
 	}else{

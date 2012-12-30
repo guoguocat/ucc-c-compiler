@@ -6,8 +6,10 @@
 
 #include <unistd.h>
 #include <signal.h>
+#include <sys/stat.h>
 
 #include "../util/util.h"
+#include "../util/io.h"
 #include "data_structs.h"
 #include "tokenise.h"
 #include "../util/util.h"
@@ -209,7 +211,7 @@ void io_setup(void)
 	for(i = 0; i < NUM_SECTIONS; i++){
 		snprintf(fnames[i], sizeof fnames[i], "/tmp/cc1_%d%d", getpid(), i);
 
-		cc_out[i] = fopen(fnames[i], "w+"); /* need to seek */
+		cc_out[i] = fopen_w_chmod(fnames[i], OPEN_RW_SEEK); /* need to seek */
 		if(!cc_out[i])
 			ccdie(0, "open \"%s\":", fnames[i]);
 	}
@@ -291,7 +293,7 @@ int main(int argc, char **argv)
 			if(strcmp(argv[i], "-")){
 				cc1_out = fopen(argv[i], "w");
 				if(!cc1_out){
-					ccdie(0, "open %s:", argv[i]);
+					ccdie(0, "oopen %s:", argv[i]);
 					return 1;
 				}
 			}
