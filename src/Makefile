@@ -13,6 +13,9 @@ cc1: util
 cpp2: util
 	${MAKE_DIR}
 
+sdb:
+	${MAKE_DIR}
+
 util:
 	${MAKE_DIR}
 
