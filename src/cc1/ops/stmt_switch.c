@@ -210,6 +210,10 @@ void gen_stmt_switch(stmt *s)
 
 int switch_passable(stmt *s)
 {
+	/* this is nowhere near perfect
+	 * if we have a default case, passable s->lhs
+	 * otherwise, we are passable unless the switch is a full covered enum
+	 */
 	return fold_passable(s->lhs);
 }
 
