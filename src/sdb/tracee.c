@@ -1,8 +1,11 @@
+#define _POSIX_SOURCE
 #include <string.h>
 #include <unistd.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
+
+#include <signal.h>
 
 #include <sys/ptrace.h>
 
@@ -26,8 +29,7 @@ pid_t tracee_create(tracee *t)
 {
 	memset(t, 0, sizeof *t);
 
-	pid_t c = fork();
-	switch(c){
+	switch(t->pid = fork()){
 		case -1:
 			die("fork():");
 
@@ -38,7 +40,7 @@ pid_t tracee_create(tracee *t)
 			t->running = 1;
 	}
 
-	return c;
+	return t->pid;
 }
 
 void tracee_wait(tracee *t)
@@ -65,15 +67,24 @@ void tracee_wait(tracee *t)
 	}
 }
 
-#if 0
+static void tracee_ptrace(int req, pid_t pid, void *addr, void *data)
+{
+	if(ptrace(req, pid, addr, data) < 0)
+		die("ptrace():");
+}
+
+void tracee_kill(tracee *t, int sig)
+{
+	if(kill(t->pid, sig) == -1)
+		die("kill():");
+}
+
 void tracee_step(tracee *t)
 {
-	if(ptrace(PTRACE_SINGLESTEP, child_pid, 0, 0) < 0)
-		die("ptrace():");
-
-	n_insts++;
-
-	/* Wait for child to stop on its next instruction */
-	wait(&wait_status);
+	tracee_ptrace(PTRACE_SINGLESTEP, t->pid, 0, 0);
 }
-#endif
+
+void tracee_continue(tracee *t)
+{
+	tracee_ptrace(PTRACE_CONT, t->pid, 0, 0);
+}

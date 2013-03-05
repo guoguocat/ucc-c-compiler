@@ -26,4 +26,9 @@ void tracee_traceme(void);
 pid_t tracee_create(tracee *t);
 void  tracee_wait(tracee *t);
 
+void  tracee_kill(tracee *t, int sig);
+
+void  tracee_continue(tracee *t);
+void  tracee_step(tracee *t);
+
 #endif
