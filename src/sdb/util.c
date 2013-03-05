@@ -12,7 +12,7 @@ static void vwarn(const char *fmt, va_list l)
 
 	size_t len = strlen(fmt);
 	if(len > 0 && fmt[len-1] == ':')
-		fprintf(stderr, ": %s", strerror(errno));
+		fprintf(stderr, " %s", strerror(errno));
 
 	fputc('\n', stderr);
 }
