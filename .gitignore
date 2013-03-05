@@ -5,6 +5,7 @@ config.mk
 src/cc1/cc1
 src/cpp2/cpp
 src/ucc/ucc
+src/sdb/sdb
 src/ucc/cfg.h
 src/as_cfg.h
 
