@@ -27,7 +27,7 @@ c_kill(tracee *child)
 static noreturn void
 c_quit(tracee *child)
 {
-	if(child->running)
+	if(tracee_alive(child))
 		c_kill(child);
 	exit(0);
 }
@@ -87,7 +87,7 @@ dispatch(tracee *child, const char *cmd)
 		if(!strcmp(cmds[i].s, cmd)){
 			found = 1;
 
-			if(!child->running && cmds[i].mode & CMD_NEEDS_LIVING)
+			if(cmds[i].mode & CMD_NEEDS_LIVING && !tracee_alive(child))
 				printf("child isn't running, can't \"%s\"\n", cmds[i].s);
 			else
 				cmds[i].f(child), ret = cmds[i].mode & CMD_WAIT_AFTER;

@@ -38,16 +38,8 @@ pid_t tracee_create(tracee *t)
 {
 	memset(t, 0, sizeof *t);
 
-	switch(t->pid = fork()){
-		case -1:
-			die("fork():");
-
-		case 0:
-			break;
-
-		default:
-			t->running = 1;
-	}
+	if((t->pid = fork()) == -1)
+		die("fork():");
 
 	return t->pid;
 }
@@ -69,7 +61,6 @@ void tracee_wait(tracee *t)
 	}else if(WIFEXITED(wstatus)){
 		t->event = TRACEE_KILLED;
 		t->exit_code = WEXITSTATUS(wstatus);
-		t->running = 0;
 
 	}else{
 		warn("unknown waitpid status 0x%x", wstatus);
@@ -86,6 +77,11 @@ void tracee_kill(tracee *t, int sig)
 {
 	if(kill(t->pid, sig) == -1)
 		die("kill():");
+}
+
+int tracee_alive(tracee *t)
+{
+	return kill(t->pid, 0) != -1;
 }
 
 #define SIG_ARG_NONE 0

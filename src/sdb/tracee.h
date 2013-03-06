@@ -6,7 +6,6 @@
 typedef struct tracee
 {
 	pid_t pid;
-	int running;
 	enum
 	{
 		TRACEE_TRAPPED,
@@ -27,6 +26,7 @@ pid_t tracee_create(tracee *t);
 void  tracee_wait(tracee *t);
 
 void  tracee_kill(tracee *t, int sig);
+int   tracee_alive(tracee *t);
 
 void  tracee_continue(tracee *t);
 void  tracee_step(tracee *t);
