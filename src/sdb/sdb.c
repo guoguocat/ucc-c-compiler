@@ -6,6 +6,7 @@
 
 #include "util.h"
 #include "tracee.h"
+#include "prompt.h"
 
 static noreturn void
 run_target(char **argv)
@@ -106,15 +107,11 @@ run_debugger(tracee *child)
 prompt:
 		fputs("(sdb) ", stdout);
 
-		char cmd[64];
-		if(!fgets(cmd, sizeof cmd, stdin)){
+		char *cmd;
+		if(!(cmd = prompt())){
 			putchar('\n');
 			c_quit(child);
 		}
-
-		char *s;
-		if((s = strchr(cmd, '\n')))
-			*s = '\0';
 
 		if(!dispatch(child, cmd))
 			goto prompt;
