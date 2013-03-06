@@ -44,44 +44,59 @@ c_examine(tracee *child)
 	/* TODO */
 }
 
+static void
+c_help(tracee *);
+
 static const struct
 {
 	const char *s;
 	void (*f)(tracee *);
-	int needs_alive;
+	enum {
+		CMD_WAIT_AFTER, CMD_NEEDS_LIVING
+	} mode;
 } cmds[] = {
-	{ "quit", c_quit, 0 },
-	{ "break", c_break, 0 },
-	{ "x", c_examine, 1 },
-	{ "kill", c_kill, 1 },
-
-	{ "cont", tracee_continue, 1 },
-	{ "step", tracee_step, 1 },
+	{  "quit",   c_quit,           0                 },
+	{  "help",   c_help,           0                 },
+	{  "break",  c_break,          0                 },
+	{  "x",      c_examine,        CMD_NEEDS_LIVING  },
+	{  "kill",   c_kill,           CMD_NEEDS_LIVING | CMD_WAIT_AFTER },
+	{  "cont",   tracee_continue,  CMD_NEEDS_LIVING | CMD_WAIT_AFTER },
+	{  "step",   tracee_step,      CMD_NEEDS_LIVING | CMD_WAIT_AFTER },
 
 	{ NULL }
 };
+
+static void
+c_help(tracee *child)
+{
+	(void)child;
+
+	printf("available commands:\n");
+	for(int i = 0; cmds[i].s; i++)
+		printf("%s\n", cmds[i].s);
+}
 
 static int
 dispatch(tracee *child, const char *cmd)
 {
 	/* TODO: parse cmd */
-	int dispatched = 0, found = 0;
+	int ret = 0, found = 0;
 
 	for(int i = 0; cmds[i].s; i++)
 		if(!strcmp(cmds[i].s, cmd)){
 			found = 1;
 
-			if(!child->running && cmds[i].needs_alive)
+			if(!child->running && cmds[i].mode & CMD_NEEDS_LIVING)
 				printf("child isn't running, can't \"%s\"\n", cmds[i].s);
 			else
-				cmds[i].f(child), dispatched = 1;
+				cmds[i].f(child), ret = cmds[i].mode & CMD_WAIT_AFTER;
 			break;
 		}
 
 	if(!found)
 		printf("command \"%s\" not found\n", cmd);
 
-	return dispatched;
+	return ret;
 }
 
 static noreturn void
