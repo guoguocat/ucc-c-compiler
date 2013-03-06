@@ -19,6 +19,15 @@
 #include "tracee.h"
 #include "util.h"
 
+#ifdef __APPLE__
+#  define PTRACE_TRACEME    PT_TRACE_ME
+#  define PTRACE_SINGLESTEP PT_STEP
+#  define PTRACE_CONT       PT_CONTINUE
+#  define DATA_CAST(x) (intptr_t)x
+#else
+#  define DATA_CAST(x) x
+#endif
+
 void tracee_traceme()
 {
 	if(ptrace(PTRACE_TRACEME, 0, 0, 0) < 0)
@@ -69,7 +78,7 @@ void tracee_wait(tracee *t)
 
 static void tracee_ptrace(int req, pid_t pid, void *addr, void *data)
 {
-	if(ptrace(req, pid, addr, data) < 0)
+	if(ptrace(req, pid, addr, DATA_CAST(data)) < 0)
 		die("ptrace():");
 }
 
@@ -79,12 +88,21 @@ void tracee_kill(tracee *t, int sig)
 		die("kill():");
 }
 
+#define SIG_ARG_NONE 0
+#ifdef __APPLE__
+#  define ADDR_ARG_NONE (void *)1
+#else
+#  define ADDR_ARG_NONE 0
+#endif
+
 void tracee_step(tracee *t)
 {
-	tracee_ptrace(PTRACE_SINGLESTEP, t->pid, 0, 0);
+	tracee_ptrace(PTRACE_SINGLESTEP, t->pid,
+			ADDR_ARG_NONE, SIG_ARG_NONE);
 }
 
 void tracee_continue(tracee *t)
 {
-	tracee_ptrace(PTRACE_CONT, t->pid, 0, 0);
+	tracee_ptrace(PTRACE_CONT, t->pid,
+			ADDR_ARG_NONE, SIG_ARG_NONE);
 }
