@@ -47,6 +47,18 @@ c_examine(tracee *child)
 static void
 c_help(tracee *);
 
+static void
+c_regs_read(tracee *t)
+{
+	struct arch_regs regs;
+
+	tracee_read_regs(t, &regs);
+
+#define REG(nam) printf(#nam " = 0x%lx\n", regs.nam);
+#include "arch_regs.h"
+#undef REG
+}
+
 static const struct
 {
 	const char *s;
@@ -60,6 +72,7 @@ static const struct
 	{  "help",   c_help,           0                 },
 	{  "break",  c_break,          0                 },
 	{  "x",      c_examine,        CMD_NEEDS_LIVING  },
+	{  "rall",   c_regs_read,      CMD_NEEDS_LIVING  },
 	{  "kill",   c_kill,           CMD_NEEDS_LIVING | CMD_WAIT_AFTER },
 	{  "cont",   tracee_continue,  CMD_NEEDS_LIVING | CMD_WAIT_AFTER },
 	{  "step",   tracee_step,      CMD_NEEDS_LIVING | CMD_WAIT_AFTER },

@@ -87,3 +87,8 @@ void tracee_continue(tracee *t)
 	tracee_ptrace(PTRACE_CONT, t->pid,
 			ADDR_ARG_NONE, SIG_ARG_NONE);
 }
+
+void tracee_read_regs(tracee *t, struct arch_regs *regs)
+{
+	arch_read_regs(t->pid, regs);
+}

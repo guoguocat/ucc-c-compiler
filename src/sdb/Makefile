@@ -2,7 +2,7 @@ include ../src_config.mk
 
 CFLAGS += -std=c11 -Wmissing-prototypes # until merged into ../
 
-OBJ = sdb.o util.o tracee.o prompt.o ptrace.o
+OBJ = sdb.o util.o tracee.o prompt.o ptrace.o arch.o
 
 sdb: ${OBJ}
 	${CC} ${LDFLAGS} -o $@ ${OBJ}
