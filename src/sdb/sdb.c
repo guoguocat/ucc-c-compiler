@@ -52,7 +52,8 @@ static const struct
 	const char *s;
 	void (*f)(tracee *);
 	enum {
-		CMD_WAIT_AFTER, CMD_NEEDS_LIVING
+		CMD_WAIT_AFTER   = 1 << 0,
+		CMD_NEEDS_LIVING = 1 << 1,
 	} mode;
 } cmds[] = {
 	{  "quit",   c_quit,           0                 },
