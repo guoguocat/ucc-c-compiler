@@ -7,30 +7,14 @@
 
 #include <signal.h>
 
-#include <sys/ptrace.h>
-
-#if 0
-#include <signal.h>
-#include <syscall.h>
-#include <sys/reg.h>
-#include <sys/user.h>
-#endif
-
+#include "ptrace.h"
+#include "arch.h"
 #include "tracee.h"
 #include "util.h"
 
-#ifdef __APPLE__
-#  define PTRACE_TRACEME    PT_TRACE_ME
-#  define PTRACE_SINGLESTEP PT_STEP
-#  define PTRACE_CONT       PT_CONTINUE
-#  define DATA_CAST(x) (intptr_t)x
-#else
-#  define DATA_CAST(x) x
-#endif
-
 void tracee_traceme()
 {
-	if(ptrace(PTRACE_TRACEME, 0, 0, 0) < 0)
+	if(sdb_ptrace(PTRACE_TRACEME, 0, 0, 0) < 0)
 		die("ptrace(TRACE_ME):");
 }
 
@@ -49,7 +33,7 @@ void tracee_wait(tracee *t)
 	int wstatus;
 
 	if(waitpid(t->pid, &wstatus, 0) == -1)
-		die("waitpid():");
+		goto buh;
 
 	if(WIFSTOPPED(wstatus)){
 		t->event = TRACEE_TRAPPED;
@@ -63,20 +47,21 @@ void tracee_wait(tracee *t)
 		t->exit_code = WEXITSTATUS(wstatus);
 
 	}else{
+buh:
 		warn("unknown waitpid status 0x%x", wstatus);
 	}
 }
 
 static void tracee_ptrace(int req, pid_t pid, void *addr, void *data)
 {
-	if(ptrace(req, pid, addr, DATA_CAST(data)) < 0)
-		die("ptrace():");
+	if(sdb_ptrace(req, pid, addr, data) < 0)
+		warn("ptrace():");
 }
 
 void tracee_kill(tracee *t, int sig)
 {
 	if(kill(t->pid, sig) == -1)
-		die("kill():");
+		warn("kill():");
 }
 
 int tracee_alive(tracee *t)
