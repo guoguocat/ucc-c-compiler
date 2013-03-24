@@ -87,13 +87,13 @@ c_help(tracee *child)
 
 	printf("available commands:\n");
 	for(int i = 0; cmds[i].s; i++)
-		printf("%s\n", cmds[i].s);
+		printf("  %s\n", cmds[i].s);
 }
 
 static int
 dispatch(tracee *child, const char *cmd)
 {
-	/* TODO: parse cmd */
+	/* TODO: parse cmd, tab completion, shortened recognition (e.g. "disas") */
 	int ret = 0, found = 0;
 
 	for(int i = 0; cmds[i].s; i++)
