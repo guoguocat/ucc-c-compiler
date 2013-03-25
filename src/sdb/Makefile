@@ -7,13 +7,15 @@ OBJ     = sdb.o util.o tracee.o prompt.o arch/arch.o \
 					os/${OS_NAME}/ptrace.o os/${OS_NAME}/${OS_NAME}.o
 
 CFLAGS   += -Wmissing-prototypes # until merged into ../
-CPPFLAGS += -Iarch/${ARCH}
+CPPFLAGS += -D_XOPEN_SOURCE -Iarch/${ARCH}
 
 sdb: ${OBJ}
-	${CC} ${LDFLAGS} -o $@ ${OBJ}
+	@echo LD $@
+	@${CC} ${LDFLAGS} -o $@ ${OBJ}
 
 .c.o:
-	${CC} ${CPPFLAGS} ${CFLAGS} -c -o $@ $<
+	@echo CC $<
+	@${CC} ${CPPFLAGS} ${CFLAGS} -c -o $@ $<
 
 clean:
 	rm -f ${OBJ} sdb
