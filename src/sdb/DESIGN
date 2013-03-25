@@ -1,0 +1,12 @@
+Invocation:
+	sdb path/to/exe [pid]
+	sdb path/to/sdb.dir cmd <-- while-running wrapper
+
+Setup:
+	d=./sdb.$$
+	mkdir $d
+	mkfifo $d/cmd
+	touch $d/state # "trapped" / "running", etc
+	touch $d/log   # output for commands written to $d/cmd
+	touch $d/out   # output for last command written to $d/cmd
+	touch $d/breakpoints # ?
