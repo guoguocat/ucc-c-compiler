@@ -1,0 +1,18 @@
+#!/bin/sh
+
+if [ $# -ne 0 ]
+then
+	echo "Usage: $0" >&2
+	exit 1
+fi
+
+ARCH=$(uname -m)
+if [ $ARCH = amd64 ]
+then
+	ARCH=x86_64
+fi
+
+cat > config.mk <<!
+OS_NAME = $(uname -s | tr 'A-Z' 'a-z')
+ARCH    = $ARCH
+!

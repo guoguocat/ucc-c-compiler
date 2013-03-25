@@ -1,9 +1,13 @@
 #ifndef PTRACE_H
 #define PTRACE_H
 
-#include <sys/types.h>
-#include <sys/ptrace.h>
+enum os_pt
+{
+	SDB_TRACEME,
+	SDB_SINGLESTEP,
+	SDB_CONT
+};
 
-long sdb_ptrace(int req, pid_t pid, void *addr, void *data);
+long os_ptrace(enum os_pt, pid_t pid, void *addr, void *data);
 
 #endif

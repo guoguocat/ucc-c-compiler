@@ -13,11 +13,8 @@ typedef struct tracee
 		TRACEE_KILLED
 	} event;
 
-	union
-	{
 		int sig;
 		int exit_code;
-	};
 } tracee;
 
 void tracee_traceme(void);

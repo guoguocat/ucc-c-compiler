@@ -2,6 +2,6 @@ prompt.o: prompt.c prompt.h
 sdb.o: sdb.c util.h tracee.h prompt.h arch.h
 tracee.o: tracee.c os/ptrace.h arch.h tracee.h util.h
 util.o: util.c util.h
-os/ptrace.o: os//ptrace.c os//ptrace.h
-os/linux/linux.o: os/linux//linux.c os/linux//../ptrace.h os/linux//../../arch.h \
-os/linux/ os/linux//../../util.h arch/x86_64/regs.def
+arch/arch.o: arch//arch.c arch//../arch.h arch/x86_64/regs.def
+os/freebsd/freebsd.o: os/freebsd//freebsd.c os/freebsd//../../arch.h
+os/freebsd/ptrace.o: os/freebsd//ptrace.c os/freebsd//../ptrace.h

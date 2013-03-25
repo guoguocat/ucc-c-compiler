@@ -2,8 +2,10 @@
 #include <stddef.h> /* offsetof */
 #include <assert.h>
 
+#include <sys/types.h>
 #include <sys/reg.h>
 #include <sys/user.h>
+#include <sys/ptrace.h>
 
 #include "../ptrace.h"
 #include "../../arch.h"
@@ -22,18 +24,6 @@ static unsigned long *reg_addr(struct user_regs_struct *regs, const char *nam)
 	int off = reg_offset(nam);
 	assert(off != -1);
 	return (unsigned long *)((char *)regs + off);
-}
-
-const char **arch_reg_names(void)
-{
-	static const char *regs[] = {
-#define REG(r) #r,
-#include "regs.def"
-#undef REG
-		NULL
-	};
-
-	return regs;
 }
 
 unsigned long arch_reg_read(pid_t pid, const char *nam)

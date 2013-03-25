@@ -1,4 +1,3 @@
-#define _POSIX_SOURCE
 #include <string.h>
 #include <unistd.h>
 
@@ -14,7 +13,7 @@
 
 void tracee_traceme()
 {
-	if(sdb_ptrace(PTRACE_TRACEME, 0, 0, 0) < 0)
+	if(os_ptrace(SDB_TRACEME, 0, 0, 0) < 0)
 		die("ptrace(TRACE_ME):");
 }
 
@@ -54,7 +53,7 @@ buh:
 
 static void tracee_ptrace(int req, pid_t pid, void *addr, void *data)
 {
-	if(sdb_ptrace(req, pid, addr, data) < 0)
+	if(os_ptrace(req, pid, addr, data) < 0)
 		warn("ptrace():");
 }
 
@@ -78,13 +77,13 @@ int tracee_alive(tracee *t)
 
 void tracee_step(tracee *t)
 {
-	tracee_ptrace(PTRACE_SINGLESTEP, t->pid,
+	tracee_ptrace(SDB_SINGLESTEP, t->pid,
 			ADDR_ARG_NONE, SIG_ARG_NONE);
 }
 
 void tracee_continue(tracee *t)
 {
-	tracee_ptrace(PTRACE_CONT, t->pid,
+	tracee_ptrace(SDB_CONT, t->pid,
 			ADDR_ARG_NONE, SIG_ARG_NONE);
 }
 
