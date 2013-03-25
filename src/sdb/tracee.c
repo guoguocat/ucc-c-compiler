@@ -7,7 +7,7 @@
 
 #include <signal.h>
 
-#include "ptrace.h"
+#include "os/ptrace.h"
 #include "arch.h"
 #include "tracee.h"
 #include "util.h"
@@ -88,7 +88,7 @@ void tracee_continue(tracee *t)
 			ADDR_ARG_NONE, SIG_ARG_NONE);
 }
 
-void tracee_read_regs(tracee *t, struct arch_regs *regs)
+unsigned long tracee_read_reg(tracee *t, const char *nam)
 {
-	arch_read_regs(t->pid, regs);
+	return arch_reg_read(t->pid, nam);
 }

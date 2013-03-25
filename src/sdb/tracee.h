@@ -2,7 +2,6 @@
 #define TRACEE_H
 
 #include <sys/types.h>
-#include "arch.h"
 
 typedef struct tracee
 {
@@ -32,6 +31,6 @@ int   tracee_alive(tracee *t);
 void  tracee_continue(tracee *t);
 void  tracee_step(tracee *t);
 
-void tracee_read_regs(tracee *t, struct arch_regs *);
+unsigned long tracee_read_reg(tracee *t, const char *);
 
 #endif

@@ -1,20 +1,11 @@
 #ifndef ARCH_H
 #define ARCH_H
 
-#include <sys/types.h>
+#include <sys/types.h> /* pid_t */
 
-#ifndef __x86_64__
-#  error todo: 32-bit
-#endif
+const char **arch_reg_names(void);
 
-struct arch_regs
-{
-#define REG(nam) unsigned long nam;
-#include "arch_regs.h"
-#undef REG
-};
-
-void arch_read_regs( pid_t pid, struct arch_regs *);
-void arch_write_regs(pid_t pid, struct arch_regs *);
+unsigned long arch_reg_read( pid_t pid, const char *nam);
+void          arch_reg_write(pid_t pid, const char *nam, unsigned long);
 
 #endif

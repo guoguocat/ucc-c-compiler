@@ -1,7 +1,7 @@
-arch.o: arch.c arch_linux_x64.c arch.h arch_regs.h ptrace.h util.h
-arch_linux_x64.o: arch_linux_x64.c arch.h arch_regs.h ptrace.h util.h
 prompt.o: prompt.c prompt.h
-ptrace.o: ptrace.c ptrace.h
-sdb.o: sdb.c util.h tracee.h arch.h arch_regs.h prompt.h
-tracee.o: tracee.c ptrace.h arch.h arch_regs.h tracee.h util.h
+sdb.o: sdb.c util.h tracee.h prompt.h arch.h
+tracee.o: tracee.c os/ptrace.h arch.h tracee.h util.h
 util.o: util.c util.h
+os/ptrace.o: os//ptrace.c os//ptrace.h
+os/linux/linux.o: os/linux//linux.c os/linux//../ptrace.h os/linux//../../arch.h \
+os/linux/ os/linux//../../util.h arch/x86_64/regs.def

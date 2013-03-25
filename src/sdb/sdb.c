@@ -7,6 +7,7 @@
 #include "util.h"
 #include "tracee.h"
 #include "prompt.h"
+#include "arch.h"
 
 static noreturn void
 run_target(char **argv)
@@ -50,13 +51,12 @@ c_help(tracee *);
 static void
 c_regs_read(tracee *t)
 {
-	struct arch_regs regs;
+	const char **r;
 
-	tracee_read_regs(t, &regs);
-
-#define REG(nam) printf(#nam " = 0x%lx\n", regs.nam);
-#include "arch_regs.h"
-#undef REG
+	for(r = arch_reg_names(); *r; r++){
+		unsigned long v = tracee_read_reg(t, *r);
+		printf("%s = 0x%lx\n", *r, v);
+	}
 }
 
 static const struct
