@@ -8,3 +8,6 @@ os/freebsd/ptrace.o: os/freebsd//ptrace.c os/freebsd//../ptrace.h
 os/linux/linux.o: os/linux//linux.c os/linux//../ptrace.h os/linux//../../arch.h \
 os/linux/ os/linux//../../util.h arch/x86_64/regs.def
 os/linux/ptrace.o: os/linux//ptrace.c os/linux//../ptrace.h
+arch/arch.o: arch//arch.c arch/../arch.h arch/x86_64/regs.def
+os/freebsd/os.o: os/freebsd//os.c os/freebsd/../../arch.h
+os/freebsd/ptrace.o: os/freebsd//ptrace.c os/freebsd/../ptrace.h
