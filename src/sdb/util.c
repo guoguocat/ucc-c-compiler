@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #include "util.h"
 
@@ -33,4 +34,25 @@ void die(const char *fmt, ...)
 	va_end(l);
 
 	exit(1);
+}
+
+int mkdir_p(char *d)
+{
+	char *p = d;
+	do{
+		p = strchr(p + 1, '/');
+
+		char s;
+		if(p){
+			s = *p;
+			*p = '\0';
+		}
+
+		if(mkdir(d, 0755) && errno != EEXIST)
+			return -1;
+
+		if(p)
+			*p = s;
+	}while(p);
+	return 0;
 }

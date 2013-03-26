@@ -7,4 +7,6 @@
 void warn(const char *fmt, ...);
 noreturn void die(const char *fmt, ...);
 
+int mkdir_p(char *);
+
 #endif

@@ -53,23 +53,46 @@ prompt:
 	}
 }
 
+static void
+setup_dir(char *dir)
+{
+	if(mkdir_p(dir))
+		die("mkdir %s:", dir);
+
+	if(chdir(dir))
+		die("chdir %s:", dir);
+
+	printf("success %s\n", dir);
+	exit(1);
+	// fifo
+}
 
 int
 main(int argc, char **argv)
 {
-	tracee child;
+	char *d = NULL;
+	unsigned i = 1;
 
-	if(argc < 2){
-		fprintf(stderr, "Usage: %s child-args...\n", *argv);
-		return 1;
+	if(argc > 2 && !strcmp(argv[i], "-d")){
+		d = argv[++i];
+		i++;
 	}
 
+	char buf[16];
+	if(!d)
+		snprintf(buf, sizeof buf, "sdb.%d", getpid());
+	setup_dir(d ? d : buf);
+
+	tracee child;
 	switch(tracee_create(&child)){
 		case 0:
-			run_target(argv + 1);
+			run_target(argv + i);
 			break;
 
 		default:
 			run_debugger(&child);
 	}
+
+	fprintf(stderr, "Usage: %s [-d dir] [command [args...]]\n", *argv);
+	return 1;
 }
