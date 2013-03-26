@@ -10,12 +10,10 @@ CFLAGS   += -Wmissing-prototypes # until merged into ../
 CPPFLAGS += -D_XOPEN_SOURCE -Iarch/${ARCH}
 
 sdb: ${OBJ}
-	@echo LD $@
-	@${CC} ${LDFLAGS} -o $@ ${OBJ}
+	${CC} ${LDFLAGS} -o $@ ${OBJ}
 
 .c.o:
-	@echo CC $<
-	@${CC} ${CPPFLAGS} ${CFLAGS} -c -o $@ $<
+	${CC} ${CPPFLAGS} ${CFLAGS} -c -o $@ $<
 
 clean:
 	rm -f ${OBJ} sdb
