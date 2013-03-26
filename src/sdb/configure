@@ -8,11 +8,15 @@ fi
 
 ARCH=$(uname -m)
 if [ $ARCH = amd64 ]
-then
-	ARCH=x86_64
+then ARCH=x86_64
+fi
+
+OS=$(uname -s | tr 'A-Z' 'a-z')
+if [ $OS = darwin ]
+then OS=freebsd
 fi
 
 cat > config.mk <<!
-OS_NAME = $(uname -s | tr 'A-Z' 'a-z')
+OS_NAME = $OS
 ARCH    = $ARCH
 !
