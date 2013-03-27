@@ -45,9 +45,10 @@ int arch_reg_read(pid_t pid, int i, reg_t *p)
 {
 	assert(i >= 0);
 
+	errno = 0;
 	*p = ptrace(PTRACE_PEEKUSER, pid, i * sizeof(reg_t), 0);
 
-	return 0;
+	return errno ? -1 : 0;
 }
 
 int arch_reg_write(pid_t pid, int i, const reg_t v)
