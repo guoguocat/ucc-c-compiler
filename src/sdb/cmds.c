@@ -59,7 +59,7 @@ static void c_step(tracee *t, char **argv)
 	tracee_step(t);
 }
 
-static const struct
+static const struct dispatch
 {
 	const char *s;
 	void (*f)(tracee *, char **);
@@ -93,22 +93,30 @@ c_help(tracee *child, char **argv)
 int
 cmd_dispatch(tracee *child, char **inp)
 {
+	enum { DISPATCH_REPROMPT = 0, DISPATCH_WAIT = 1 };
+
 	/* TODO: parse cmd, tab completion, shortened recognition (e.g. "disas") */
-	int ret = 0, found = 0;
+	const size_t len = strlen(*inp);
+	const struct dispatch *found = NULL;
+	int ret = DISPATCH_REPROMPT;
 
 	for(int i = 0; cmds[i].s; i++)
-		if(!strcmp(cmds[i].s, inp[0])){
-			found = 1;
-
-			if(cmds[i].mode & CMD_NEEDS_LIVING && !tracee_alive(child))
-				printf("child isn't running, can't \"%s\"\n", cmds[i].s);
-			else
-				cmds[i].f(child, inp), ret = cmds[i].mode & CMD_WAIT_AFTER;
-			break;
+		if(!strncmp(cmds[i].s, inp[0], len)){
+			if(found){
+				fprintf(stderr, "ambiguous command \"%s\"\n", inp[0]);
+				return DISPATCH_REPROMPT;
+			}
+			found = &cmds[i];
 		}
 
-	if(!found)
+	if(found){
+		if(found->mode & CMD_NEEDS_LIVING && !tracee_alive(child))
+			printf("child isn't running, can't \"%s\"\n", found->s);
+		else
+			found->f(child, inp), ret = found->mode & CMD_WAIT_AFTER;
+	}else{
 		printf("command \"%s\" not found\n", inp[0]);
+	}
 
 	return ret;
 }
