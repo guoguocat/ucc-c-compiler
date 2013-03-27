@@ -7,6 +7,17 @@
 
 #include "util.h"
 
+void ice(const char *f, int line, const char *fn, const char *fmt, ...);
+void ice(const char *f, int line, const char *fn, const char *fmt, ...)
+{
+	fprintf(stderr, "%s:%d::%s: ICE: ", f, line, fn);
+	va_list l;
+	va_start(l, fmt);
+	vfprintf(stderr, fmt, l);
+	va_end(l);
+	abort();
+}
+
 static void vwarn(const char *fmt, va_list l)
 {
 	vfprintf(stderr, fmt, l);

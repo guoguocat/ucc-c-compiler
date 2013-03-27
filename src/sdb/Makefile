@@ -4,9 +4,10 @@ include config.mk
 DEP_FILE = Makefile.deps
 
 OBJ     = sdb.o util.o tracee.o prompt.o arch/arch.o cmds.o \
-          os/${OS_NAME}/ptrace.o os/${OS_NAME}/os.o
+          os/${OS_NAME}/ptrace.o os/${OS_NAME}/os.o \
+          ../util/dynarray.o ../util/alloc.o
 
-CFLAGS   += -Wmissing-prototypes # until merged into ../
+CFLAGS   += -Wno-unused-parameter -Wmissing-prototypes # until merged into ../
 CPPFLAGS += -D_XOPEN_SOURCE -Iarch/${ARCH}
 
 sdb: ${OBJ}

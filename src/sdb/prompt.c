@@ -2,12 +2,23 @@
 #include <string.h>
 
 #include "prompt.h"
+#include "../util/dynarray.h"
+#include "../util/alloc.h"
 
 /* TODO: term initialisation, char-by-char, completion, etc */
-char *prompt()
+static char **parse(char *cmd)
+{
+	char **r = NULL;
+	char *p;
+	while((p = strsep(&cmd, " \t")))
+		dynarray_add((void ***)&r, ustrdup(p));
+
+	return r;
+}
+
+char **prompt()
 {
 	static char cmd[64];
-
 	char this[sizeof cmd];
 	int success = !!fgets(this, sizeof this, stdin);
 
@@ -23,7 +34,7 @@ char *prompt()
 			printf("[%s]\n", cmd);
 		}
 
-		return cmd;
+		return parse(cmd);
 	}
 
 	return NULL;

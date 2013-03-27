@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <unistd.h>
 
 #include "util.h"
@@ -43,10 +44,10 @@ run_debugger(tracee *child)
 prompt:
 		fputs("(sdb) ", stdout);
 
-		char *cmd;
+		char **cmd;
 		if(!(cmd = prompt())){
 			putchar('\n');
-			c_quit(child);
+			c_quit(child, (char *[]){"q", NULL});
 		}
 
 		if(!cmd_dispatch(child, cmd))

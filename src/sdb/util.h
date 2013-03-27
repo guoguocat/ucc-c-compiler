@@ -1,5 +1,5 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef SDB_UTIL_H
+#define SDB_UTIL_H
 
 /*#include <stdnoreturn.h>*/
 #define noreturn __attribute__((noreturn))
