@@ -56,6 +56,7 @@ prompt:
 static void
 setup_dir(char *dir)
 {
+	return; /* for now, we're command-line */
 	if(mkdir_p(dir))
 		die("mkdir %s:", dir);
 
