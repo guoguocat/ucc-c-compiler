@@ -5,10 +5,9 @@
 
 #include "util.h"
 
+#include "arch.h"
 #include "tracee.h"
 #include "cmds.h"
-
-#include "arch.h"
 
 static void
 c_kill(tracee *child)

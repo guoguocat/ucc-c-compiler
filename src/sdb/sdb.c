@@ -5,6 +5,7 @@
 
 #include "util.h"
 
+#include "arch.h"
 #include "tracee.h"
 #include "cmds.h"
 #include "prompt.h"

@@ -1,6 +1,8 @@
+breakpoint.o: breakpoint.c arch.h breakpoint.h
+cmds.o: cmds.c util.h tracee.h breakpoint.h cmds.h arch.h
 prompt.o: prompt.c prompt.h
-sdb.o: sdb.c util.h tracee.h prompt.h arch.h
-tracee.o: tracee.c os/ptrace.h arch.h tracee.h util.h
+sdb.o: sdb.c util.h arch.h tracee.h breakpoint.h cmds.h prompt.h
+tracee.o: tracee.c os/ptrace.h arch.h tracee.h breakpoint.h util.h
 util.o: util.c util.h
 arch/arch.o: arch//arch.c arch//../arch.h arch/x86_64/regs.def
 os/freebsd/freebsd.o: os/freebsd//freebsd.c os/freebsd//../../arch.h
