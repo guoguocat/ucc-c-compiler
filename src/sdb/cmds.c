@@ -2,8 +2,11 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
+#include <errno.h>
 
 #include "util.h"
+#include "../util/dynarray.h"
+#define ARGC(argv) dynarray_count((void **)argv)
 
 #include "arch.h"
 #include "tracee.h"
@@ -26,7 +29,23 @@ c_quit(tracee *child, char **argv)
 static void
 c_break(tracee *child, char **argv)
 {
-	/* TODO */
+	if(ARGC(argv) > 2){
+		fprintf(stderr, "Usage: %s [addr]\n", *argv);
+		return;
+	}
+
+	addr_t addr;
+	if(argv[1]){
+		if(sscanf(argv[1], "0x%lx", &addr) != 1){
+			fprintf(stderr, "%s isn't an address\n", argv[1]);
+			return;
+		}
+	}else{
+		addr = arch_reg_read_e(child->pid, ARCH_REG_IP);
+	}
+
+	if(tracee_break(child, addr))
+		fprintf(stderr, "break: %s\n", strerror(errno));
 }
 
 static void
