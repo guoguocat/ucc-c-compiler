@@ -31,8 +31,6 @@ int   tracee_alive(tracee *t);
 void  tracee_continue(tracee *t);
 void  tracee_step(tracee *t);
 
-reg_t tracee_read_reg(tracee *t, const char *);
-
 int tracee_break(tracee *t, addr_t);
 
 #endif

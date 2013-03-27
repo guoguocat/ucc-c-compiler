@@ -89,11 +89,6 @@ void tracee_continue(tracee *t)
 			ADDR_ARG_NONE, SIG_ARG_NONE);
 }
 
-reg_t tracee_read_reg(tracee *t, const char *nam)
-{
-	return arch_reg_read(t->pid, nam);
-}
-
 int tracee_break(tracee *t, addr_t a)
 {
 	bkpt *b = bkpt_new(t->pid, a);

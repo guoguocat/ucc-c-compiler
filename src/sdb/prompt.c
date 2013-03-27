@@ -10,7 +10,8 @@ static char **parse(char *cmd)
 {
 	char **r = NULL;
 	char *p;
-	while((p = strsep(&cmd, " \t")))
+
+	for(p = strtok(cmd, " \t"); p; p = strtok(NULL, " \t"))
 		dynarray_add((void ***)&r, ustrdup(p));
 
 	return r;

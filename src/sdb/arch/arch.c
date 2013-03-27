@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <string.h>
+
 #include "../arch.h"
 
 const char **arch_reg_names(void)

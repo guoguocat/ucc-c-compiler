@@ -1,5 +1,6 @@
 #include <string.h>
-#include <stddef.h> /* offsetof */
+#include <strings.h>
+#include <errno.h>
 #include <assert.h>
 
 #include <sys/types.h>
@@ -11,39 +12,46 @@
 #include "../../arch.h"
 #include "../../util.h"
 
-static int reg_offset(const char *nam)
+int arch_reg_offset(const char *s)
 {
-#define REG(r) if(!strcmp(nam, #r)) return offsetof(struct user_regs_struct, r);
+#define REG(x) if(!strcasecmp(s, #x)) return x;
 #include "regs.def"
 #undef REG
 	return -1;
 }
 
-static unsigned long *reg_addr(struct user_regs_struct *regs, const char *nam)
+int arch_pseudo_reg(enum pseudo_reg r)
 {
-	int off = reg_offset(nam);
-	assert(off != -1);
-	return (unsigned long *)((char *)regs + off);
+	switch(r){
+		case ARCH_REG_IP: return RIP;
+		case ARCH_REG_SP: return RSP;
+	}
+	return -1;
 }
 
-unsigned long arch_reg_read(pid_t pid, const char *nam)
+int arch_read(pid_t pid, addr_t addr, void *p, size_t l)
 {
-	if(reg_offset(nam) == -1){
-		/* TODO: pass back error */
-		warn("register %s not found", nam);
-		return -1UL;
-	}
-
-	struct user usr;
-	if(ptrace(PTRACE_GETREGS, pid, 0, &usr) < 0){
-		warn("ptrace(PTRACE_GETREGS):");
-		return -1UL;
-	}
-
-	return *reg_addr(&usr.regs, nam);
+	errno = ENOSYS;
+	return -1;
 }
 
-void arch_reg_write(pid_t pid, const char *nam, unsigned long val)
+int arch_write(pid_t pid, addr_t addr, const void *p, size_t l)
 {
-	// TODO
+	errno = ENOSYS;
+	return -1;
+}
+
+int arch_reg_read(pid_t pid, int i, reg_t *p)
+{
+	assert(i >= 0);
+
+	*p = ptrace(PTRACE_PEEKUSER, pid, i * sizeof(reg_t), 0);
+
+	return 0;
+}
+
+int arch_reg_write(pid_t pid, int i, const reg_t v)
+{
+	errno = ENOSYS;
+	return -1;
 }

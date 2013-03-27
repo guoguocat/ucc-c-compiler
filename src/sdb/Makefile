@@ -5,7 +5,7 @@ DEP_FILE = Makefile.deps
 
 OBJ     = sdb.o util.o tracee.o prompt.o arch/arch.o cmds.o \
           breakpoint.o \
-          os/${OS_NAME}/ptrace.o os/${OS_NAME}/os.o \
+          arch/${ARCH}/arch.o os/${OS_NAME}/ptrace.o os/${OS_NAME}/os.o \
           ../util/dynarray.o ../util/alloc.o
 
 CFLAGS   += -Wno-unused-parameter -Wmissing-prototypes # until merged into ../

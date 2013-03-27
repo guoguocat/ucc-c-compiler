@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "util.h"
 #include "../util/dynarray.h"
@@ -30,22 +31,24 @@ static void
 c_break(tracee *child, char **argv)
 {
 	if(ARGC(argv) > 2){
-		fprintf(stderr, "Usage: %s [addr]\n", *argv);
+		warn("Usage: %s [addr]", *argv);
 		return;
 	}
 
 	addr_t addr;
 	if(argv[1]){
 		if(sscanf(argv[1], "0x%lx", &addr) != 1){
-			fprintf(stderr, "%s isn't an address\n", argv[1]);
+			warn("%s isn't an address", argv[1]);
 			return;
 		}
-	}else{
-		addr = arch_reg_read_e(child->pid, ARCH_REG_IP);
+	}else if(arch_reg_read(child->pid,
+				arch_pseudo_reg(ARCH_REG_IP), &addr)){
+		warn("read register ip:");
+		return;
 	}
 
 	if(tracee_break(child, addr))
-		fprintf(stderr, "break: %s\n", strerror(errno));
+		warn("break:");
 }
 
 static void
@@ -63,8 +66,15 @@ c_regs_read(tracee *t, char **argv)
 	const char **r;
 
 	for(r = arch_reg_names(); *r; r++){
-		unsigned long v = tracee_read_reg(t, *r);
-		printf("%s = 0x%lx\n", *r, v);
+		int i = arch_reg_offset(*r);
+
+		assert(i != -1);
+
+		reg_t v;
+		if(arch_reg_read(t->pid, i, &v))
+			warn("read reg \"%s\":", *r);
+		else
+			printf("%s = 0x%lx\n", *r, v);
 	}
 }
 
@@ -76,6 +86,51 @@ static void c_cont(tracee *t, char **argv)
 static void c_step(tracee *t, char **argv)
 {
 	tracee_step(t);
+}
+
+static void c_reg_read(tracee *t, char **argv)
+{
+	if(ARGC(argv) != 2){
+		warn("Usage: %s register", *argv);
+		return;
+	}
+
+	int i = arch_reg_offset(argv[1]);
+	if(i == -1){
+		warn("unknown register \"%s\"", argv[1]);
+		return;
+	}
+
+	reg_t v;
+	if(arch_reg_read(t->pid, i, &v)){
+		warn("reg read:");
+		return;
+	}
+
+	printf("0x%lx\n", v);
+}
+
+static void c_reg_write(tracee *t, char **argv)
+{
+	if(ARGC(argv) != 3){
+		warn("Usage: %s register value", *argv);
+		return;
+	}
+
+	int i = arch_reg_offset(argv[1]);
+	if(i == -1){
+		warn("unknown register \"%s\"", argv[1]);
+		return;
+	}
+
+	reg_t v;
+	if(sscanf(argv[2], "%lu", &v) != 1){
+		warn("%s isn't a register value", argv[2]);
+		return;
+	}
+
+	if(arch_reg_write(t->pid, i, v))
+		warn("reg write:");
 }
 
 static const struct dispatch
@@ -92,6 +147,8 @@ static const struct dispatch
 	{  "break",  c_break,          0                 },
 	{  "x",      c_examine,        CMD_NEEDS_LIVING  },
 	{  "rall",   c_regs_read,      CMD_NEEDS_LIVING  },
+	{  "rr"  ,   c_reg_read,       CMD_NEEDS_LIVING  },
+	{  "rw"  ,   c_reg_write,      CMD_NEEDS_LIVING  },
 	{  "kill",   c_kill,           CMD_NEEDS_LIVING | CMD_WAIT_AFTER },
 	{  "cont",   c_cont,           CMD_NEEDS_LIVING | CMD_WAIT_AFTER },
 	{  "step",   c_step,           CMD_NEEDS_LIVING | CMD_WAIT_AFTER },
@@ -122,7 +179,7 @@ cmd_dispatch(tracee *child, char **inp)
 	for(int i = 0; cmds[i].s; i++)
 		if(!strncmp(cmds[i].s, inp[0], len)){
 			if(found){
-				fprintf(stderr, "ambiguous command \"%s\"\n", inp[0]);
+				warn("ambiguous command \"%s\"", inp[0]);
 				return DISPATCH_REPROMPT;
 			}
 			found = &cmds[i];
