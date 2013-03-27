@@ -1,8 +1,10 @@
-breakpoint.o: breakpoint.c arch.h breakpoint.h
-cmds.o: cmds.c util.h tracee.h breakpoint.h cmds.h arch.h
-prompt.o: prompt.c prompt.h
+breakpoint.o: breakpoint.c arch.h breakpoint.h ../util/alloc.h
+cmds.o: cmds.c util.h ../util/dynarray.h arch.h tracee.h breakpoint.h \
+  cmds.h
+prompt.o: prompt.c prompt.h ../util/dynarray.h ../util/alloc.h
 sdb.o: sdb.c util.h arch.h tracee.h breakpoint.h cmds.h prompt.h
-tracee.o: tracee.c os/ptrace.h arch.h tracee.h breakpoint.h util.h
+tracee.o: tracee.c os/ptrace.h arch.h tracee.h breakpoint.h util.h \
+  ../util/dynarray.h
 util.o: util.c util.h
 arch/arch.o: arch//arch.c arch//../arch.h arch/x86_64/regs.def
 os/freebsd/freebsd.o: os/freebsd//freebsd.c os/freebsd//../../arch.h

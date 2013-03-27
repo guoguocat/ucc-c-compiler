@@ -11,6 +11,8 @@
 #include "tracee.h"
 #include "util.h"
 
+#include "../util/dynarray.h"
+
 void tracee_traceme()
 {
 	if(os_ptrace(SDB_TRACEME, 0, 0, 0) < 0)
@@ -87,7 +89,17 @@ void tracee_continue(tracee *t)
 			ADDR_ARG_NONE, SIG_ARG_NONE);
 }
 
-unsigned long tracee_read_reg(tracee *t, const char *nam)
+reg_t tracee_read_reg(tracee *t, const char *nam)
 {
 	return arch_reg_read(t->pid, nam);
+}
+
+int tracee_break(tracee *t, addr_t a)
+{
+	bkpt *b = bkpt_new(t->pid, a);
+	if(!b)
+		return -1;
+
+	dynarray_add((void ***)&t->breakpoints, b);
+	return 0;
 }

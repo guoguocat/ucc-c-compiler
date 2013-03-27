@@ -2,6 +2,7 @@
 #define TRACEE_H
 
 #include <sys/types.h>
+#include "breakpoint.h"
 
 typedef struct tracee
 {
@@ -15,6 +16,8 @@ typedef struct tracee
 
 		int sig;
 		int exit_code;
+
+		bkpt **breakpoints;
 } tracee;
 
 void tracee_traceme(void);
@@ -28,6 +31,8 @@ int   tracee_alive(tracee *t);
 void  tracee_continue(tracee *t);
 void  tracee_step(tracee *t);
 
-unsigned long tracee_read_reg(tracee *t, const char *);
+reg_t tracee_read_reg(tracee *t, const char *);
+
+int tracee_break(tracee *t, addr_t);
 
 #endif

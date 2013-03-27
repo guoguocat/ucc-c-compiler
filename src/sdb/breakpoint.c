@@ -1,5 +1,10 @@
+#include <stdlib.h>
+#include <stdarg.h>
+
 #include "arch.h"
 #include "breakpoint.h"
+
+#include "../util/alloc.h"
 
 typedef unsigned long ulong;
 
@@ -10,17 +15,18 @@ struct bkpt
 	pid_t pid;
 };
 
-void bkpt_place(bkpt *b, addr_t a, pid_t pid)
+int bkpt_place(bkpt *b, pid_t pid, addr_t a)
 {
 	b->addr = a;
 	b->pid = pid;
-	bkpt_enable(b);
+	return bkpt_enable(b);
 }
 
 bkpt *bkpt_new(addr_t a, pid_t pid)
 {
 	bkpt *b = umalloc(sizeof *b);
-	bkpt_place(b, a);
+	if(bkpt_place(b, pid, a))
+		free(b), b = NULL;
 	return b;
 }
 
