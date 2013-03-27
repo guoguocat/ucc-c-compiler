@@ -53,6 +53,7 @@ int arch_reg_read(pid_t pid, int i, reg_t *p)
 
 int arch_reg_write(pid_t pid, int i, const reg_t v)
 {
-	errno = ENOSYS;
-	return -1;
+	assert(i >= 0);
+
+	return ptrace(PTRACE_POKEUSER, pid, i * sizeof(reg_t), v) < 0 ? -1 : 0;
 }
