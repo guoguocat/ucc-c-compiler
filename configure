@@ -109,6 +109,8 @@ then
 	exit
 fi
 
+(cd src/sdb && ./configure)
+
 case "$(uname -s)" in
 	Darwin)
 		UCC_ARCH=macho64
