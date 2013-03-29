@@ -19,7 +19,7 @@ static char **parse(char *cmd)
 
 char **prompt()
 {
-	static char cmd[64];
+	static char cmd[64] = "help";
 	char this[sizeof cmd];
 	int success = !!fgets(this, sizeof this, stdin);
 
