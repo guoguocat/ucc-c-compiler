@@ -3,7 +3,7 @@
 
 typedef struct bkpt bkpt;
 
-bkpt *bkpt_new(addr_t a, pid_t);
+bkpt *bkpt_new(pid_t pid, addr_t a);
 int   bkpt_place(bkpt *, pid_t, addr_t);
 
 int  bkpt_enable(bkpt *);

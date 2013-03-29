@@ -22,7 +22,7 @@ int bkpt_place(bkpt *b, pid_t pid, addr_t a)
 	return bkpt_enable(b);
 }
 
-bkpt *bkpt_new(addr_t a, pid_t pid)
+bkpt *bkpt_new(pid_t pid, addr_t a)
 {
 	bkpt *b = umalloc(sizeof *b);
 	if(bkpt_place(b, pid, a))
