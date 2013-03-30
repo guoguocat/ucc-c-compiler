@@ -40,6 +40,7 @@ int arch_read(pid_t pid, addr_t addr, void *vp, size_t l)
 			return -1;
 
 		switch(l){
+			/* FIXME: this works but isn't well defined by C alias rules */
 #define CASE(ty)            \
 			case sizeof(ty):      \
 				*(ty *)p = (ty)buf; \
@@ -59,10 +60,26 @@ out:
 	return 0;
 }
 
-int arch_write(pid_t pid, addr_t addr, const void *p, size_t l)
+int arch_write(pid_t pid, addr_t addr, const void *vp, size_t l)
 {
-	errno = ENOSYS;
-	return -1;
+	const unsigned long *p = vp;
+
+	while(l){
+		switch(l){
+			case sizeof(long):
+				/* easy, just read it */
+				if(ptrace(PTRACE_POKETEXT, pid, addr, *p))
+					return -1;
+				break;
+
+			case sizeof(char):
+			case sizeof(short):
+			case sizeof(int):
+				assert(0 && "TODO");
+		}
+	}
+
+	return 0;
 }
 
 int arch_reg_read(pid_t pid, int i, reg_t *p)
