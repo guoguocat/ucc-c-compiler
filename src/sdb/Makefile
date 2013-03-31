@@ -17,6 +17,10 @@ sdb: ${OBJ}
 .c.o:
 	${CC} ${CPPFLAGS} ${CFLAGS} -c -o $@ $<
 
+simple: simple.s
+	as -o simple.o simple.s
+	ld -Ttext=0x200000 -o simple simple.o
+
 clean:
 	rm -f ${OBJ} sdb
 
