@@ -28,7 +28,7 @@ typedef struct tracee
 void tracee_traceme(void);
 
 pid_t tracee_create(tracee *t);
-void  tracee_wait(tracee *t);
+void  tracee_wait(tracee *t, reg_t *p_ip);
 
 void  tracee_kill(tracee *t, int sig);
 int   tracee_alive(tracee *t);

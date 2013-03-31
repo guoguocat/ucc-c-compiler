@@ -24,8 +24,11 @@ run_target(char **argv)
 static noreturn void
 run_debugger(tracee *child)
 {
+	printf("child pid %d\n", child->pid);
+
 	for(;;){
-		tracee_wait(child);
+		reg_t ip;
+		tracee_wait(child, &ip);
 
 		switch(child->event){
 			case TRACEE_KILLED:
@@ -33,16 +36,17 @@ run_debugger(tracee *child)
 				break;
 
 			case TRACEE_SIGNALED:
-				printf("signaled with signal %d\n", child->evt.sig);
+				printf("signaled with signal %d @ " REG_FMT "\n",
+						child->evt.sig, ip);
 				break;
 
 			case TRACEE_BREAK:
-				printf("stopped at breakpoint 0x%lx\n",
+				printf("stopped @ breakpoint " REG_FMT "\n",
 						bkpt_addr(child->evt.bkpt));
 				break;
 
 			case TRACEE_TRAPPED:
-				printf("trapped\n");
+				printf("trapped @ " REG_FMT "\n", ip);
 				break;
 		}
 

@@ -7,6 +7,8 @@ typedef unsigned long reg_t;
 typedef unsigned long addr_t;
 typedef unsigned long word_t;
 
+#define REG_FMT "0x%lx"
+
 enum pseudo_reg
 {
 	ARCH_REG_IP,
