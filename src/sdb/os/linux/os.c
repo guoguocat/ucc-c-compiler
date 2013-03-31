@@ -44,19 +44,25 @@ int arch_mem_write(pid_t pid, addr_t addr, unsigned long v)
 	return ptrace(PTRACE_POKETEXT, pid, addr, v) != 0;
 }
 
-int arch_reg_read(pid_t pid, int i, reg_t *p)
+int arch_usr_read(pid_t pid, unsigned off, reg_t *p)
 {
-	assert(i >= 0);
-
 	errno = 0;
-	*p = ptrace(PTRACE_PEEKUSER, pid, i * sizeof(reg_t), 0);
+	*p = ptrace(PTRACE_PEEKUSER, pid, off, 0);
 
 	return errno ? -1 : 0;
 }
 
-int arch_reg_write(pid_t pid, int i, const reg_t v)
+int arch_usr_write(pid_t pid, unsigned off, const reg_t v)
 {
-	assert(i >= 0);
+	return ptrace(PTRACE_POKEUSER, pid, off, v) < 0 ? -1 : 0;
+}
 
-	return ptrace(PTRACE_POKEUSER, pid, i * sizeof(reg_t), v) < 0 ? -1 : 0;
+int arch_reg_read(pid_t pid, unsigned i, reg_t *p)
+{
+	return arch_usr_read(pid, i * sizeof(reg_t), p);
+}
+
+int arch_reg_write(pid_t pid, unsigned i, const reg_t v)
+{
+	return arch_usr_write(pid, i * sizeof(reg_t), v);
 }
