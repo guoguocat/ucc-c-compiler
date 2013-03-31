@@ -155,8 +155,11 @@ static int tracee_step_bkpt(tracee *t)
 		tracee_ptrace(SDB_SINGLESTEP, t->pid,
 				ADDR_ARG_NONE, SIG_ARG_NONE);
 
-		if(bkpt_enable(b))
-			warn("enable breakpoint:");
+		tracee_wait(t, NULL);
+		if(tracee_alive(t)){
+			if(bkpt_enable(b))
+				warn("enable breakpoint:");
+		}
 
 		/* continue */
 		return 1;
