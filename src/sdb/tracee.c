@@ -132,6 +132,16 @@ void tracee_continue(tracee *t)
 
 		if(tracee_set_reg(t, ARCH_REG_IP, bkpt_addr(b)))
 			warn("set ip:");
+
+		/* step over the breakpoint,
+		 * then re-enable */
+		tracee_ptrace(SDB_SINGLESTEP, t->pid,
+				ADDR_ARG_NONE, SIG_ARG_NONE);
+
+		if(bkpt_enable(b))
+			warn("enable breakpoint:");
+
+		/* continue */
 	}
 
 	tracee_ptrace(SDB_CONT, t->pid,
