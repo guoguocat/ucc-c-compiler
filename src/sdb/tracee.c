@@ -135,13 +135,7 @@ int tracee_alive(tracee *t)
 #  define ADDR_ARG_NONE 0
 #endif
 
-void tracee_step(tracee *t)
-{
-	tracee_ptrace(SDB_SINGLESTEP, t->pid,
-			ADDR_ARG_NONE, SIG_ARG_NONE);
-}
-
-void tracee_continue(tracee *t)
+static int tracee_step_bkpt(tracee *t)
 {
 	if(t->event == TRACEE_BREAK){
 		/* resume from breakpoint:
@@ -165,7 +159,22 @@ void tracee_continue(tracee *t)
 			warn("enable breakpoint:");
 
 		/* continue */
+		return 1;
 	}
+	return 0;
+}
+
+void tracee_step(tracee *t)
+{
+	tracee_step_bkpt(t);
+
+	tracee_ptrace(SDB_SINGLESTEP, t->pid,
+			ADDR_ARG_NONE, SIG_ARG_NONE);
+}
+
+void tracee_continue(tracee *t)
+{
+	tracee_step_bkpt(t);
 
 	tracee_ptrace(SDB_CONT, t->pid,
 			ADDR_ARG_NONE, SIG_ARG_NONE);
