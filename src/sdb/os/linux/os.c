@@ -29,57 +29,19 @@ int arch_pseudo_reg(enum pseudo_reg r)
 	return -1;
 }
 
-int arch_read(pid_t pid, addr_t addr, void *vp, size_t l)
+int arch_mem_read(pid_t pid, addr_t addr, unsigned long *p)
 {
-	unsigned long *p = vp;
+	errno = 0;
+	*p = ptrace(PTRACE_PEEKTEXT, pid, addr, 0);
+	if(errno)
+		return -1;
 
-	while(l){
-		errno = 0;
-		unsigned long buf = ptrace(PTRACE_PEEKTEXT, pid, addr, 0);
-		if(errno)
-			return -1;
-
-		switch(l){
-			/* FIXME: this works but isn't well defined by C alias rules */
-#define CASE(ty)            \
-			case sizeof(ty):      \
-				*(ty *)p = (ty)buf; \
-				goto out
-
-			CASE(char);
-			CASE(short);
-			CASE(int);
-
-			case sizeof(long): /* assume 64-bit */
-				*p++ = buf;
-				l -= sizeof(long);
-		}
-	}
-
-out:
 	return 0;
 }
 
-int arch_write(pid_t pid, addr_t addr, const void *vp, size_t l)
+int arch_mem_write(pid_t pid, addr_t addr, unsigned long v)
 {
-	const unsigned long *p = vp;
-
-	while(l){
-		switch(l){
-			case sizeof(long):
-				/* easy, just read it */
-				if(ptrace(PTRACE_POKETEXT, pid, addr, *p))
-					return -1;
-				break;
-
-			case sizeof(char):
-			case sizeof(short):
-			case sizeof(int):
-				assert(0 && "TODO");
-		}
-	}
-
-	return 0;
+	return ptrace(PTRACE_POKETEXT, pid, addr, v) != 0;
 }
 
 int arch_reg_read(pid_t pid, int i, reg_t *p)

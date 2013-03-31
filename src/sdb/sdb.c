@@ -29,11 +29,16 @@ run_debugger(tracee *child)
 
 		switch(child->event){
 			case TRACEE_KILLED:
-				printf("exited with code %d\n", child->exit_code);
+				printf("exited with code %d\n", child->evt.exit_code);
 				break;
 
 			case TRACEE_SIGNALED:
-				printf("signaled with signal %d\n", child->sig);
+				printf("signaled with signal %d\n", child->evt.sig);
+				break;
+
+			case TRACEE_BREAK:
+				printf("stopped at breakpoint 0x%lx\n",
+						bkpt_addr(child->evt.bkpt));
 				break;
 
 			case TRACEE_TRAPPED:

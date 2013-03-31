@@ -41,8 +41,7 @@ c_break(tracee *child, char **argv)
 			warn("%s isn't an address", argv[1]);
 			return;
 		}
-	}else if(arch_reg_read(child->pid,
-				arch_pseudo_reg(ARCH_REG_IP), &addr)){
+	}else if(tracee_get_reg(child, ARCH_REG_IP, &addr)){
 		warn("read register ip:");
 		return;
 	}
@@ -186,6 +185,7 @@ cmd_dispatch(tracee *child, char **inp)
 		}
 
 	if(found){
+		// FIXME: remove alive
 		if(found->mode & CMD_NEEDS_LIVING && !tracee_alive(child))
 			printf("child isn't running, can't \"%s\"\n", found->s);
 		else

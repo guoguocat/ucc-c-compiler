@@ -10,14 +10,19 @@ typedef struct tracee
 	enum
 	{
 		TRACEE_TRAPPED,
+		TRACEE_BREAK,
 		TRACEE_SIGNALED,
-		TRACEE_KILLED
+		TRACEE_KILLED,
 	} event;
 
+	union
+	{
 		int sig;
 		int exit_code;
+		bkpt *bkpt;
+	} evt;
 
-		bkpt **breakpoints;
+	bkpt **bkpts;
 } tracee;
 
 void tracee_traceme(void);
@@ -32,5 +37,8 @@ void  tracee_continue(tracee *t);
 void  tracee_step(tracee *t);
 
 int tracee_break(tracee *t, addr_t);
+
+int tracee_get_reg(tracee *t, enum pseudo_reg r, reg_t *p);
+int tracee_set_reg(tracee *t, enum pseudo_reg r, const reg_t v);
 
 #endif

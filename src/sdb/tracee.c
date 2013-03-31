@@ -29,6 +29,34 @@ pid_t tracee_create(tracee *t)
 	return t->pid;
 }
 
+static bkpt *tracee_find_breakpoint(tracee *t, addr_t loc)
+{
+	loc -= arch_trap_size(); /* step back over it */
+
+	for(bkpt **i = t->bkpts;
+			i && *i;
+			i++)
+	{
+		bkpt *b = *i;
+		if(bkpt_addr(b) == loc)
+			return b;
+	}
+
+	return NULL;
+}
+
+int tracee_get_reg(tracee *t, enum pseudo_reg r, reg_t *p)
+{
+	return arch_reg_read(t->pid,
+			arch_pseudo_reg(r), p);
+}
+
+int tracee_set_reg(tracee *t, enum pseudo_reg r, const reg_t v)
+{
+	return arch_reg_write(t->pid,
+			arch_pseudo_reg(r), v);
+}
+
 void tracee_wait(tracee *t)
 {
 	int wstatus;
@@ -39,13 +67,20 @@ void tracee_wait(tracee *t)
 	if(WIFSTOPPED(wstatus)){
 		t->event = TRACEE_TRAPPED;
 
+		/* check if it's from our breakpoints */
+		addr_t ip;
+		if(tracee_get_reg(t, ARCH_REG_IP, &ip))
+			warn("read reg ip:");
+		else if((t->evt.bkpt = tracee_find_breakpoint(t, ip)))
+			t->event = TRACEE_BREAK;
+
 	}else if(WIFSIGNALED(wstatus)){
 		t->event = TRACEE_SIGNALED;
-		t->sig = WSTOPSIG(wstatus);
+		t->evt.sig = WSTOPSIG(wstatus);
 
 	}else if(WIFEXITED(wstatus)){
 		t->event = TRACEE_KILLED;
-		t->exit_code = WEXITSTATUS(wstatus);
+		t->evt.exit_code = WEXITSTATUS(wstatus);
 
 	}else{
 buh:
@@ -85,6 +120,20 @@ void tracee_step(tracee *t)
 
 void tracee_continue(tracee *t)
 {
+	if(t->event == TRACEE_BREAK){
+		/* resume from breakpoint:
+		 * need to disable it, and
+		 * step back over it to re-run
+		 */
+		bkpt *b = t->evt.bkpt;
+
+		if(bkpt_disable(b))
+			warn("disable breakpoint:");
+
+		if(tracee_set_reg(t, ARCH_REG_IP, bkpt_addr(b)))
+			warn("set ip:");
+	}
+
 	tracee_ptrace(SDB_CONT, t->pid,
 			ADDR_ARG_NONE, SIG_ARG_NONE);
 }
@@ -95,6 +144,6 @@ int tracee_break(tracee *t, addr_t a)
 	if(!b)
 		return -1;
 
-	dynarray_add((void ***)&t->breakpoints, b);
+	dynarray_add((void ***)&t->bkpts, b);
 	return 0;
 }

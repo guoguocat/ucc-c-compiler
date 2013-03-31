@@ -6,12 +6,10 @@
 
 #include "../util/alloc.h"
 
-typedef unsigned long ulong;
-
 struct bkpt
 {
 	addr_t addr;
-	ulong orig_code;
+	word_t orig_code;
 	pid_t pid;
 };
 
@@ -32,16 +30,15 @@ bkpt *bkpt_new(pid_t pid, addr_t a)
 
 int bkpt_enable(bkpt *b)
 {
-	ulong code;
-	if(arch_read(b->pid, b->addr, &code, sizeof code))
+	word_t code;
+	if(arch_mem_read(b->pid, b->addr, &code))
 		return -1;
 
 	b->orig_code = code;
 
-	char trap = arch_inst_trap();
+	code = (code & arch_trap_mask()) | arch_trap_inst();
 
-	/* little endian - fine */
-	if(arch_write(b->pid, b->addr, &trap, sizeof trap))
+	if(arch_mem_write(b->pid, b->addr, code))
 		return -1;
 
 	return 0;
@@ -49,5 +46,10 @@ int bkpt_enable(bkpt *b)
 
 int bkpt_disable(bkpt *b)
 {
-	return arch_write(b->pid, b->addr, &b->orig_code, sizeof b->orig_code);
+	return arch_mem_write(b->pid, b->addr, b->orig_code);
+}
+
+addr_t bkpt_addr(bkpt *b)
+{
+	return b->addr;
 }

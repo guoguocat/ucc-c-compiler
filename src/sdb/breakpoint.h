@@ -9,4 +9,6 @@ int   bkpt_place(bkpt *, pid_t, addr_t);
 int  bkpt_enable(bkpt *);
 int  bkpt_disable(bkpt *);
 
+addr_t bkpt_addr(bkpt *);
+
 #endif

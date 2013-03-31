@@ -5,6 +5,7 @@
 
 typedef unsigned long reg_t;
 typedef unsigned long addr_t;
+typedef unsigned long word_t;
 
 enum pseudo_reg
 {
@@ -21,9 +22,11 @@ int arch_pseudo_reg(enum pseudo_reg);
 int arch_reg_read( pid_t pid, int off, reg_t *);
 int arch_reg_write(pid_t pid, int off, const reg_t);
 
-int arch_read( pid_t, addr_t,       void *, size_t);
-int arch_write(pid_t, addr_t, const void *, size_t);
+int arch_mem_read( pid_t, addr_t, word_t *);
+int arch_mem_write(pid_t, addr_t, word_t);
 
-unsigned long arch_inst_trap(void);
+unsigned long arch_trap_inst(void);
+unsigned long arch_trap_mask(void);
+unsigned long arch_trap_size(void);
 
 #endif
