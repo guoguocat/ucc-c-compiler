@@ -191,3 +191,13 @@ int tracee_break(tracee *t, addr_t a)
 	dynarray_add((void ***)&t->bkpts, b);
 	return 0;
 }
+
+int tracee_watch(tracee *t, addr_t a)
+{
+	watchpt *w = watchpt_new(t->pid, a, 4 /* FIXME: for now */);
+	if(!w)
+		return -1;
+
+	dynarray_add((void ***)&t->watchpts, w);
+	return 0;
+}

@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include "breakpoint.h"
+#include "watchpoint.h"
 
 typedef struct tracee
 {
@@ -23,6 +24,7 @@ typedef struct tracee
 	} evt;
 
 	bkpt **bkpts;
+	watchpt **watchpts;
 } tracee;
 
 void tracee_traceme(void);
@@ -37,6 +39,7 @@ void  tracee_continue(tracee *t);
 void  tracee_step(tracee *t);
 
 int tracee_break(tracee *t, addr_t);
+int tracee_watch(tracee *t, addr_t);
 
 int tracee_get_reg(tracee *t, enum pseudo_reg r, reg_t *p);
 int tracee_set_reg(tracee *t, enum pseudo_reg r, const reg_t v);

@@ -51,6 +51,24 @@ c_break(tracee *child, char **argv)
 }
 
 static void
+c_watch(tracee *child, char **argv)
+{
+	if(ARGC(argv) != 2){
+		warn("Usage: %s addr", *argv);
+		return;
+	}
+
+	addr_t addr;
+	if(sscanf(argv[1], "0x%lx", &addr) != 1){
+		warn("%s isn't an address", argv[1]);
+		return;
+	}
+
+	if(tracee_watch(child, addr))
+		warn("watch:");
+}
+
+static void
 c_examine(tracee *child, char **argv)
 {
 	/* TODO */
@@ -143,7 +161,8 @@ static const struct dispatch
 } cmds[] = {
 	{  "quit",   c_quit,           0                 },
 	{  "help",   c_help,           0                 },
-	{  "break",  c_break,          0                 },
+	{  "break",  c_break,          CMD_NEEDS_LIVING  },
+	{  "watch",  c_watch,          CMD_NEEDS_LIVING  },
 	{  "x",      c_examine,        CMD_NEEDS_LIVING  },
 	{  "rall",   c_regs_read,      CMD_NEEDS_LIVING  },
 	{  "rr"  ,   c_reg_read,       CMD_NEEDS_LIVING  },
