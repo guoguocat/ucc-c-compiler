@@ -125,7 +125,7 @@ void tracee_kill(tracee *t, int sig)
 
 int tracee_alive(tracee *t)
 {
-	return kill(t->pid, 0) != -1;
+	return t->event != TRACEE_KILLED;
 }
 
 #define SIG_ARG_NONE 0
