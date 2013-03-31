@@ -57,34 +57,57 @@ int tracee_set_reg(tracee *t, enum pseudo_reg r, const reg_t v)
 			arch_pseudo_reg(r), v);
 }
 
+static void tracee_eval_sig(tracee *t, int sig)
+{
+	switch(sig){
+		case SIGTRAP:
+		{
+			/* check if it's from our breakpoints */
+			addr_t ip;
+			if(tracee_get_reg(t, ARCH_REG_IP, &ip)){
+				warn("read reg ip:");
+				t->evt.sig = 0;
+				break;
+			}
+
+			if((t->evt.bkpt = tracee_find_breakpoint(t, ip))){
+				t->event = TRACEE_BREAK;
+			}else{
+				t->event = TRACEE_TRAPPED;
+				t->evt.sig = SIGTRAP;
+			}
+			break;
+		}
+
+		default:
+			t->event = TRACEE_SIGNALED;
+			t->evt.sig = sig;
+	}
+}
+
 void tracee_wait(tracee *t)
 {
 	int wstatus;
-
-	if(waitpid(t->pid, &wstatus, 0) == -1)
+	if(waitpid(t->pid, &wstatus, 0) == -1){
+		warn("waitpid():");
 		goto buh;
+	}
 
 	if(WIFSTOPPED(wstatus)){
-		t->event = TRACEE_TRAPPED;
-
-		/* check if it's from our breakpoints */
-		addr_t ip;
-		if(tracee_get_reg(t, ARCH_REG_IP, &ip))
-			warn("read reg ip:");
-		else if((t->evt.bkpt = tracee_find_breakpoint(t, ip)))
-			t->event = TRACEE_BREAK;
+		tracee_eval_sig(t, WSTOPSIG(wstatus));
 
 	}else if(WIFSIGNALED(wstatus)){
-		t->event = TRACEE_SIGNALED;
-		t->evt.sig = WSTOPSIG(wstatus);
+		tracee_eval_sig(t, WTERMSIG(wstatus));
 
 	}else if(WIFEXITED(wstatus)){
 		t->event = TRACEE_KILLED;
 		t->evt.exit_code = WEXITSTATUS(wstatus);
 
 	}else{
-buh:
 		warn("unknown waitpid status 0x%x", wstatus);
+buh:
+		t->event = TRACEE_SIGNALED;
+		t->evt.sig = 0;
 	}
 }
 
