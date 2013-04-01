@@ -56,6 +56,10 @@ int watchpt_enable(watchpt *w, int reg_idx)
 		return -1;
 	}
 
+	dr7 |= 1 << (0 /* 1 for global */ + 2 * reg_idx);
+
+	dr7 |= 1 << (8 + 2 * reg_idx); /* ??? */
+
 	/* TODO: type */
 #define MEM_EXEC  0x0
 #define MEM_WRITE 0x1
@@ -75,7 +79,7 @@ int watchpt_enable(watchpt *w, int reg_idx)
 #define MEM_SZ_8 0x2
 #define MEM_SZ_4 0x3
 
-	dr7 |= MEM_SZ_8 << (18 + 4 * reg_idx);
+	dr7 |= MEM_SZ_4 << (18 + 4 * reg_idx);
 	/* 18-19 (DR0)
 	 * 22-23 (DR1)
 	 * 26-27 (DR2)
