@@ -9,7 +9,6 @@ typedef struct tracee
 	pid_t pid;
 	enum
 	{
-		TRACEE_TRAPPED,
 		TRACEE_BREAK,
 		TRACEE_SIGNALED,
 		TRACEE_KILLED,

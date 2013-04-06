@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+
+#include <signal.h>
 #include <unistd.h>
 
 #include "util.h"
@@ -21,6 +23,27 @@ run_target(char **argv)
 	die("exec(\"%s\"):", *argv);
 }
 
+static const char *
+sdb_signal_name(int sig)
+{
+	static const char *sigs[] = {
+#define SIG(x) [SIG##x] = "SIG"#x
+		SIG(HUP),  SIG(INT),  SIG(QUIT), SIG(ILL),
+		SIG(TRAP), SIG(ABRT), SIG(FPE),  SIG(KILL),
+		SIG(USR1), SIG(SEGV), SIG(USR2), SIG(PIPE),
+		SIG(ALRM), SIG(TERM), SIG(CHLD), SIG(CONT),
+		SIG(STOP), SIG(TSTP), SIG(TTIN), SIG(TTOU),
+#undef SIG
+	};
+
+	if(sig < (signed)(sizeof(sigs)/sizeof(*sigs)) && sigs[sig])
+		return sigs[sig];
+
+	static char buf[8];
+	snprintf(buf, sizeof buf, "%d", sig);
+	return buf;
+}
+
 static noreturn void
 run_debugger(tracee *child)
 {
@@ -36,17 +59,13 @@ run_debugger(tracee *child)
 				break;
 
 			case TRACEE_SIGNALED:
-				printf("signaled with signal %d @ " REG_FMT "\n",
-						child->evt.sig, ip);
+				printf("signaled with %s @ " REG_FMT "\n",
+						sdb_signal_name(child->evt.sig), ip);
 				break;
 
 			case TRACEE_BREAK:
 				printf("stopped @ breakpoint " REG_FMT "\n",
 						bkpt_addr(child->evt.bkpt));
-				break;
-
-			case TRACEE_TRAPPED:
-				printf("trapped @ " REG_FMT "\n", ip);
 				break;
 		}
 

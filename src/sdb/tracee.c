@@ -64,11 +64,9 @@ static void tracee_eval_sig(tracee *t, reg_t ip, int sig)
 			/* check if it's from our breakpoints */
 			if((t->evt.bkpt = tracee_find_breakpoint(t, ip))){
 				t->event = TRACEE_BREAK;
-			}else{
-				t->event = TRACEE_TRAPPED;
-				t->evt.sig = SIGTRAP;
+				break;
 			}
-			break;
+			/* fall */
 
 		default:
 			t->event = TRACEE_SIGNALED;
