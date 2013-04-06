@@ -87,9 +87,22 @@ run_debugger(tracee *child)
 				break;
 
 			case TRACEE_SIGNALED:
-				printf("signaled with %s @ " REG_FMT "\n",
-						sdb_signal_name(child->evt.sig), ip);
+			{
+				handle_ops *hops = handle_ops(child->evt.sig);
+
+				if(hops->print)
+					printf("signaled with %s @ " REG_FMT "\n",
+							sdb_signal_name(child->evt.sig), ip);
+
+				if(hops->hereditary)
+					tracee_kill(child, child->evt.sig);
+
+				if(!hops->stop){
+					tracee_continue(child);
+					continue;
+				}
 				break;
+			}
 
 			case TRACEE_BREAK:
 				printf("stopped @ breakpoint " REG_FMT "\n",
