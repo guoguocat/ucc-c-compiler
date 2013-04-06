@@ -13,6 +13,7 @@
 #include "tracee.h"
 #include "cmds.h"
 #include "prompt.h"
+#include "signal.h"
 
 static noreturn void
 run_target(char **argv)
@@ -22,27 +23,6 @@ run_target(char **argv)
 	execvp(*argv, argv);
 
 	die("exec(\"%s\"):", *argv);
-}
-
-static const char *
-sdb_signal_name(int sig)
-{
-	static const char *sigs[] = {
-#define SIG(x) [SIG##x] = "SIG"#x
-		SIG(HUP),  SIG(INT),  SIG(QUIT), SIG(ILL),
-		SIG(TRAP), SIG(ABRT), SIG(FPE),  SIG(KILL),
-		SIG(USR1), SIG(SEGV), SIG(USR2), SIG(PIPE),
-		SIG(ALRM), SIG(TERM), SIG(CHLD), SIG(CONT),
-		SIG(STOP), SIG(TSTP), SIG(TTIN), SIG(TTOU),
-#undef SIG
-	};
-
-	if(sig < (signed)(sizeof(sigs)/sizeof(*sigs)) && sigs[sig])
-		return sigs[sig];
-
-	static char buf[8];
-	snprintf(buf, sizeof buf, "%d", sig);
-	return buf;
 }
 
 static tracee *current_child;
@@ -66,7 +46,7 @@ sdb_signal(int sig, void (*pf)(int))
 			NULL);
 
 	if(r)
-		warn("signal(%s, ...):", sdb_signal_name(sig));
+		warn("signal(%s, ...):", sig_name(sig));
 }
 
 static noreturn void
@@ -92,16 +72,23 @@ run_debugger(tracee *child)
 
 			case TRACEE_SIGNALED:
 			{
-				handle_ops *hops = handle_ops(child->evt.sig);
+				handle_mask hops = sig_handle_mask(child->evt.sig);
 
-				if(hops->print)
+				if(hops & (HANDLE_PRINT | HANDLE_STOP))
 					printf("signaled with %s @ " REG_FMT "\n",
-							sdb_signal_name(child->evt.sig), ip);
+							sig_name(child->evt.sig), ip);
 
-				if(hops->hereditary)
-					tracee_kill(child, child->evt.sig);
+				if(hops & HANDLE_HEREDITARY){
+					if(hops & HANDLE_STOP){
+						/* FIXME: need another wait */
+					}else{
+						/* FIXME: use ptrace(PT_CONTINUE, pid, signal, 0)
+						 *                                     ^~~~~~ */
+						tracee_kill(child, child->evt.sig);
+					}
+				}
 
-				if(!hops->stop){
+				if(!(hops & HANDLE_STOP)){
 					tracee_continue(child);
 					continue;
 				}

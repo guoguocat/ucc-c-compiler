@@ -12,6 +12,7 @@
 #include "arch.h"
 #include "tracee.h"
 #include "cmds.h"
+#include "signal.h"
 
 static void
 c_kill(tracee *child, char **argv)
