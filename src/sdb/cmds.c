@@ -14,13 +14,16 @@
 #include "cmds.h"
 #include "signal.h"
 
-static void
+enum { DISPATCH_REPROMPT = 0, DISPATCH_WAIT = 1 };
+
+static int
 c_kill(tracee *child, char **argv)
 {
 	tracee_kill(child, SIGKILL);
+	return DISPATCH_WAIT;
 }
 
-void
+int
 c_quit(tracee *child, char **argv)
 {
 	if(tracee_alive(child))
@@ -28,39 +31,42 @@ c_quit(tracee *child, char **argv)
 	exit(0);
 }
 
-static void
+static int
 c_break(tracee *child, char **argv)
 {
 	if(ARGC(argv) > 2){
 		warn("Usage: %s [addr]", *argv);
-		return;
+		return DISPATCH_REPROMPT;
 	}
 
 	addr_t addr;
 	if(argv[1]){
 		if(sscanf(argv[1], "0x%lx", &addr) != 1){
 			warn("%s isn't an address", argv[1]);
-			return;
+			return DISPATCH_REPROMPT;
 		}
 	}else if(tracee_get_reg(child, ARCH_REG_IP, &addr)){
 		warn("read register ip:");
-		return;
+		return DISPATCH_REPROMPT;
 	}
 
 	if(tracee_break(child, addr))
 		warn("break:");
+
+	return DISPATCH_REPROMPT;
 }
 
-static void
+static int
 c_examine(tracee *child, char **argv)
 {
 	/* TODO */
+	return DISPATCH_REPROMPT;
 }
 
-static void
+static int
 c_help(tracee *, char **argv);
 
-static void
+static int
 c_regs_read(tracee *t, char **argv)
 {
 	const char **r;
@@ -76,101 +82,106 @@ c_regs_read(tracee *t, char **argv)
 		else
 			printf("%s = 0x%lx\n", *r, v);
 	}
+
+	return DISPATCH_REPROMPT;
 }
 
-static void c_cont(tracee *t, char **argv)
+static int c_cont(tracee *t, char **argv)
 {
 	tracee_continue(t);
+
+	return DISPATCH_WAIT;
 }
 
-static void c_step(tracee *t, char **argv)
+static int c_step(tracee *t, char **argv)
 {
 	tracee_step(t);
+
+	return DISPATCH_WAIT;
 }
 
-static void c_reg_read(tracee *t, char **argv)
+static int c_reg_read(tracee *t, char **argv)
 {
 	if(ARGC(argv) != 2){
 		warn("Usage: %s register", *argv);
-		return;
+		return DISPATCH_REPROMPT;
 	}
 
 	int i = arch_reg_offset(argv[1]);
 	if(i == -1){
 		warn("unknown register \"%s\"", argv[1]);
-		return;
+		return DISPATCH_REPROMPT;
 	}
 
 	reg_t v;
 	if(arch_reg_read(t->pid, i, &v)){
 		warn("reg read:");
-		return;
+		return DISPATCH_REPROMPT;
 	}
 
 	printf("0x%lx\n", v);
+
+	return DISPATCH_REPROMPT;
 }
 
-static void c_reg_write(tracee *t, char **argv)
+static int c_reg_write(tracee *t, char **argv)
 {
 	if(ARGC(argv) != 3){
 		warn("Usage: %s register value", *argv);
-		return;
+		return DISPATCH_REPROMPT;
 	}
 
 	int i = arch_reg_offset(argv[1]);
 	if(i == -1){
 		warn("unknown register \"%s\"", argv[1]);
-		return;
+		return DISPATCH_REPROMPT;
 	}
 
 	reg_t v;
 	if(sscanf(argv[2], "%lu", &v) != 1){
 		warn("%s isn't a register value", argv[2]);
-		return;
+		return DISPATCH_REPROMPT;
 	}
 
 	if(arch_reg_write(t->pid, i, v))
 		warn("reg write:");
+
+	return DISPATCH_REPROMPT;
 }
 
 static const struct dispatch
 {
 	const char *s;
-	void (*f)(tracee *, char **);
-	enum {
-		CMD_WAIT_AFTER   = 1 << 0,
-		CMD_NEEDS_LIVING = 1 << 1,
-	} mode;
+	int (*f)(tracee *, char **);
+	int need_alive;
 } cmds[] = {
-	{  "quit",   c_quit,           0                 },
-	{  "help",   c_help,           0                 },
-	{  "break",  c_break,          0                 },
-	{  "x",      c_examine,        CMD_NEEDS_LIVING  },
-	{  "rall",   c_regs_read,      CMD_NEEDS_LIVING  },
-	{  "rr"  ,   c_reg_read,       CMD_NEEDS_LIVING  },
-	{  "rw"  ,   c_reg_write,      CMD_NEEDS_LIVING  },
-	{  "kill",   c_kill,           CMD_NEEDS_LIVING | CMD_WAIT_AFTER },
-	{  "cont",   c_cont,           CMD_NEEDS_LIVING | CMD_WAIT_AFTER },
-	{  "step",   c_step,           CMD_NEEDS_LIVING | CMD_WAIT_AFTER },
+	{ "quit",   c_quit,           0 },
+	{ "help",   c_help,           0 },
+	{ "break",  c_break,          1 }, /* TODO: lazy */
+	{ "x",      c_examine,        1 },
+	{ "rall",   c_regs_read,      1 },
+	{ "rr"  ,   c_reg_read,       1 },
+	{ "rw"  ,   c_reg_write,      1 },
+	{ "kill",   c_kill,           1 },
+	{ "cont",   c_cont,           1 },
+	{ "step",   c_step,           1 },
 
 	{ NULL }
 };
 
-static void
+static int
 c_help(tracee *child, char **argv)
 {
-	(void)child;
-
 	printf("available commands:\n");
 	for(int i = 0; cmds[i].s; i++)
 		printf("  %s\n", cmds[i].s);
+
+	return DISPATCH_REPROMPT;
 }
 
 int
 cmd_dispatch(tracee *child, char **inp)
 {
-	enum { DISPATCH_REPROMPT = 0, DISPATCH_WAIT = 1 };
-
 	/* TODO: parse cmd, tab completion, shortened recognition (e.g. "disas") */
 	const size_t len = strlen(*inp);
 	const struct dispatch *found = NULL;
@@ -187,10 +198,10 @@ cmd_dispatch(tracee *child, char **inp)
 
 	if(found){
 		// FIXME: remove alive
-		if(found->mode & CMD_NEEDS_LIVING && !tracee_alive(child))
+		if(found->need_alive && !tracee_alive(child))
 			printf("child isn't running, can't \"%s\"\n", found->s);
 		else
-			found->f(child, inp), ret = found->mode & CMD_WAIT_AFTER;
+			ret = found->f(child, inp);
 	}else{
 		printf("command \"%s\" not found\n", inp[0]);
 	}
