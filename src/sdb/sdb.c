@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <errno.h>
 
 #include <signal.h>
 #include <unistd.h>
@@ -44,9 +45,36 @@ sdb_signal_name(int sig)
 	return buf;
 }
 
+static tracee *current_child;
+
+static void
+pass_sig(int sig)
+{
+	if(tracee_alive(current_child)
+	&& kill(current_child->pid, sig))
+	{
+		warn("kill(%d, %d):", current_child->pid, sig);
+	}
+}
+
+static void
+sdb_signal(int sig, void (*pf)(int))
+{
+	int r = sigaction(SIGINT,
+			&(struct sigaction){
+				.sa_handler = pf, },
+			NULL);
+
+	if(r)
+		warn("signal(%s, ...):", sdb_signal_name(sig));
+}
+
 static noreturn void
 run_debugger(tracee *child)
 {
+	current_child = child;
+	sdb_signal(SIGINT, pass_sig);
+
 	printf("child pid %d\n", child->pid);
 
 	for(;;){
@@ -74,6 +102,10 @@ prompt:
 
 		char **cmd;
 		if(!(cmd = prompt())){
+			if(errno == EINTR){
+				puts("interrupt");
+				goto prompt;
+			}
 			putchar('\n');
 			c_quit(child, (char *[]){"q", NULL});
 		}
