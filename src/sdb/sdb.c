@@ -40,6 +40,10 @@ pass_sig(int sig)
 static void
 sdb_signal(int sig, void (*pf)(int))
 {
+	/* FIXME: only do this if it's not in our shell
+	 * i.e. we've attached
+	 * i.e. need attach + detach functionality
+	 */
 	int r = sigaction(SIGINT,
 			&(struct sigaction){
 				.sa_handler = pf, },
