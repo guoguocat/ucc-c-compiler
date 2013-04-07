@@ -77,7 +77,10 @@ static void tracee_eval_sig(tracee *t, reg_t ip, int sig)
 void tracee_wait(tracee *t, reg_t *p_ip)
 {
 	int wstatus;
+retry:
 	if(waitpid(t->pid, &wstatus, 0) == -1){
+		if(errno == EINTR)
+			goto retry;
 		warn("waitpid():");
 		goto buh;
 	}
