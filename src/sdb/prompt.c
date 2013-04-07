@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 #include "prompt.h"
 #include "../util/dynarray.h"
@@ -21,6 +22,8 @@ char **prompt()
 {
 	static char cmd[64] = "help";
 	char this[sizeof cmd];
+
+	errno = 0;
 	int success = !!fgets(this, sizeof this, stdin);
 
 	if(success){
