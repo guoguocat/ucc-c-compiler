@@ -83,8 +83,13 @@ void tracee_wait(tracee *t, reg_t *p_ip)
 	}
 
 	if(WIFEXITED(wstatus)){
-		t->event = TRACEE_KILLED;
+		t->event = TRACEE_EXITED;
 		t->evt.exit_code = WEXITSTATUS(wstatus);
+		return;
+	}else if(WIFSIGNALED(wstatus) && WTERMSIG(wstatus) == SIGKILL){
+		/* dead */
+		t->event = TRACEE_KILLED;
+		t->evt.sig = SIGKILL;
 		return;
 	}
 
@@ -122,7 +127,15 @@ void tracee_kill(tracee *t, int sig)
 
 int tracee_alive(tracee *t)
 {
-	return t->event != TRACEE_KILLED;
+	switch(t->event){
+		case TRACEE_KILLED:
+		case TRACEE_EXITED:
+			return 0;
+		case TRACEE_BREAK:
+		case TRACEE_SIGNALED:
+			break;
+	}
+	return 1;
 }
 
 #define SIG_ARG_NONE 0

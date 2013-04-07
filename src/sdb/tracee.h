@@ -11,6 +11,7 @@ typedef struct tracee
 	{
 		TRACEE_BREAK,
 		TRACEE_SIGNALED,
+		TRACEE_EXITED,
 		TRACEE_KILLED,
 	} event;
 

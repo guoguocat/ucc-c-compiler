@@ -82,8 +82,12 @@ run_debugger(tracee *child)
 		tracee_wait(child, &ip);
 
 		switch(child->event){
-			case TRACEE_KILLED:
+			case TRACEE_EXITED:
 				printf("exited with code %d\n", child->evt.exit_code);
+				break;
+
+			case TRACEE_KILLED:
+				printf("killed with signal %d\n", child->evt.sig);
 				break;
 
 			case TRACEE_SIGNALED:
