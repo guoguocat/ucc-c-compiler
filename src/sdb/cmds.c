@@ -14,6 +14,8 @@
 #include "cmds.h"
 #include "signal.h"
 
+#define strcmp_lim(a, k) strncmp(a, k, strlen(a))
+
 enum { DISPATCH_REPROMPT = 0, DISPATCH_WAIT = 1 };
 
 static int
@@ -149,6 +151,76 @@ static int c_reg_write(tracee *t, char **argv)
 	return DISPATCH_REPROMPT;
 }
 
+static int
+c_sig(tracee *child, char **argv)
+{
+	/* e.g. sig TRAP USR1 stop pass
+	 *      sig INT send
+	 */
+	const int argc = ARGC(argv);
+	if(argc < 2){
+usage:
+		warn("Usage: %s send SIG\n"
+				 "       %s print|stop|pass... SIG...",
+				 *argv, *argv);
+		return DISPATCH_REPROMPT;
+	}
+
+	if(!strcmp_lim(argv[1], "send")){
+		if(argc != 3)
+			goto usage;
+
+		int sig = sig_parse(argv[2]);
+		if(sig == -1){
+			warn("bad signal to send, \"%s\"", argv[2]);
+			goto out;
+		}
+
+		tracee_kill(child, sig);
+		return DISPATCH_WAIT;
+
+	}else{
+		handle_mask mask_add = 0, mask_rm = 0;
+
+		int i;
+		for(i = 1; i < argc; i++){
+			int no;
+
+			no = !strncmp(argv[i], "no", 2);
+
+#define CHECK(str, en)              \
+			if(!strcmp_lim(argv[i], str)) \
+				*(no ? &mask_rm : &mask_add) |= HANDLE_ ## en
+
+			/**/ CHECK("print", PRINT);
+			else CHECK("stop",  STOP);
+			else CHECK("pass",  HEREDITARY);
+			else break;
+#undef CHECK
+		}
+
+		if(i == argc){
+			warn("no signals to handle");
+			goto usage;
+		}
+
+		for(; i < argc; i++){
+			int sig = sig_parse(argv[i]);
+			if(sig == -1){
+				warn("couldn't parse \"%s\"", argv[i]);
+				goto out;
+			}
+
+			sig_handle_mask_set(
+					sig,
+					(sig_handle_mask(sig) | mask_add) & ~mask_rm);
+		}
+	}
+
+out:
+	return DISPATCH_REPROMPT;
+}
+
 static const struct dispatch
 {
 	const char *s;
@@ -165,6 +237,7 @@ static const struct dispatch
 	{ "kill",   c_kill,           1 },
 	{ "cont",   c_cont,           1 },
 	{ "step",   c_step,           1 },
+	{ "signal", c_sig,            1 }, /* TODO: lazy */
 
 	{ NULL }
 };
