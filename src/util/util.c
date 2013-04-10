@@ -7,6 +7,7 @@
 
 #include "util.h"
 #include "alloc.h"
+#include "printu.h"
 
 #define WHERE_FMT "%s:%d:%d"
 #define WHERE_ARGS w->fname, w->line, w->chr + 1
@@ -108,8 +109,8 @@ void vwarn(const struct where *w, int err, int show_line, const char *fmt, va_li
 
 	w = default_where(w);
 
-	fprintf(stderr, "%s: %s: ", where_str(w), err ? "error" : "warning");
-	vfprintf(stderr, fmt, l);
+	fprintu(stderr, "%W: %s: ", w, err ? "error" : "warning");
+	vfprintu(stderr, fmt, l);
 
 	if(fmt[strlen(fmt)-1] == ':'){
 		fputc(' ', stderr);
@@ -160,9 +161,9 @@ void die(const char *fmt, ...)
 #define ICE_STR(s)  \
 	va_list l; \
 	const struct where *w = default_where(NULL); \
-	fprintf(stderr, WHERE_FMT ": " s " %s:%d (%s): ", WHERE_ARGS, f, line, fn); \
+	fprintu(stderr, "%W: " s " %s:%d (%s): ", w, f, line, fn); \
 	va_start(l, fmt); \
-	vfprintf(stderr, fmt, l); \
+	vfprintu(stderr, fmt, l); \
 	fputc('\n', stderr)
 
 void ice(const char *f, int line, const char *fn, const char *fmt, ...)

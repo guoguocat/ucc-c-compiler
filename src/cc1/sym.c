@@ -5,6 +5,7 @@
 #include <stdarg.h>
 
 #include "../util/util.h"
+#include "../util/printu.h"
 #include "data_structs.h"
 #include "sym.h"
 #include "../util/alloc.h"
@@ -107,7 +108,7 @@ sym *symtab_add(symtable *tab, decl *d, enum sym_type t, int with_sym, int prepe
 			goto fine;
 
 		if(new->decl)
-			snprintf(buf, sizeof buf, " at:\n%s", where_str(&new->decl->where));
+			snprintu(buf, sizeof buf, " at:\n%W", &new->decl->where);
 		else
 			*buf = '\0';
 
@@ -124,8 +125,8 @@ fine:
 		enum_member_search(&m, &sue, tab, d->spel);
 
 		if(m)
-			DIE_AT(&d->where, "redeclaring %s\n%s",
-					d->spel, where_str_r(buf, &sue->where));
+			DIE_AT(&d->where, "redeclaring %s\n%W: from here",
+					d->spel, &sue->where);
 	}
 
 	if(with_sym)

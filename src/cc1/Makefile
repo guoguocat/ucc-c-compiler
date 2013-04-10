@@ -4,9 +4,9 @@ LDFLAGS += -lm
 
 OBJ = \
 	../util/alloc.o ../util/util.o ../util/platform.o \
-	../util/dynarray.o ../util/dynmap.o \
+	../util/dynarray.o ../util/dynmap.o ../util/printu.o \
 	str.o \
-	cc1.o \
+	cc1.o printu.o \
 	tree.o decl.o decl_init.o funcargs.o expr.o stmt.o \
 	tokconv.o tokenise.o \
 	parse.o parse_type.o typedef.o \

@@ -56,19 +56,17 @@ enum funcargs_cmp funcargs_equal(
 
 		for(i = 0; args_to->arglist[i]; i++){
 			/* FIXME: this is not an output function */
-			char buf[DECL_STATIC_BUFSIZ];
-
 			int eq = fold_type_ref_equal(
 					args_to->arglist[i]->ref,
 					args_from->arglist[i]->ref,
 					&args_from->where, WARN_ARG_MISMATCH, flag,
-					"mismatching argument %d %s%s%s(%s <-- %s)",
+					"mismatching argument %d %s%s%s(%Q <-- %Q)",
 					i,
 					fspel ? "to " : "between declarations ",
 					fspel ? fspel : "",
 					fspel ? " " : "",
-					decl_to_str_r(buf, args_to->arglist[i]),
-					decl_to_str(       args_from->arglist[i]));
+					args_to->arglist[i],
+					args_from->arglist[i]);
 
 			if(!eq)
 				return FUNCARGS_ARE_MISMATCH_TYPES;

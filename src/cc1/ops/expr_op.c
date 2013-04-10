@@ -193,12 +193,10 @@ type_ref *op_required_promotion(
 				resolved = type_ref_new_INTPTR_T();
 			}else if(op_is_relational(op)){
 				if(op_is_comparison(op)){
-					char buf[TYPE_REF_STATIC_BUFSIZ];
-
 					fold_type_ref_equal(tlhs, trhs, w,
 							WARN_COMPARE_MISMATCH, 0,
-							"comparison of distinct pointer types lacks a cast (%s vs %s)",
-							type_ref_to_str(tlhs), type_ref_to_str_r(buf, trhs));
+							"comparison of distinct pointer types lacks a cast (%R vs %R)",
+							tlhs, trhs);
 				}
 
 				resolved = type_ref_new_INT();
@@ -273,15 +271,12 @@ type_ref *op_required_promotion(
 			if(l_unsigned == r_unsigned){
 				if(l_sz != r_sz){
 					const int l_larger = l_sz > r_sz;
-					char bufa[TYPE_REF_STATIC_BUFSIZ], bufb[TYPE_REF_STATIC_BUFSIZ];
-
 					/* TODO: needed? */
 					fold_type_ref_equal(tlhs, trhs,
 							w, WARN_COMPARE_MISMATCH, 0,
-							"mismatching types in %s (%s and %s)",
+							"mismatching types in %s (%R and %R)",
 							op_to_str(op),
-							type_ref_to_str_r(bufa, tlhs),
-							type_ref_to_str_r(bufb, trhs));
+							tlhs, trhs);
 
 					*(l_larger ? prhs : plhs) = (l_larger ? tlhs : trhs);
 
@@ -468,8 +463,8 @@ static void op_check_precedence(expr *e)
 
 void fold_expr_op(expr *e, symtable *stab)
 {
-	UCC_ASSERT(e->op != op_unknown, "unknown op in expression at %s",
-			where_str(&e->where));
+	UCC_ASSERT(e->op != op_unknown, "unknown op in expression at %W",
+			&e->where);
 
 	FOLD_EXPR(e->lhs, stab);
 	fold_disallow_st_un(e->lhs, "op-lhs");

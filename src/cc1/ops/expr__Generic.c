@@ -1,5 +1,6 @@
 #include "ops.h"
 #include "expr__Generic.h"
+#include "../../util/printu.h"
 
 const char *str_expr__Generic()
 {
@@ -81,7 +82,7 @@ void gen_expr_str__Generic(expr *e, symtable *stab)
 		if(l->t){
 			idt_printf("type: ");
 			gen_str_indent++;
-			print_type_ref(l->t, NULL);
+			printu("%R", l->t);
 			gen_str_indent--;
 			fprintf(cc1_out, "\n");
 		}else{

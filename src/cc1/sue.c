@@ -6,6 +6,7 @@
 #include "../util/alloc.h"
 #include "../util/util.h"
 #include "../util/dynarray.h"
+#include "../util/printu.h"
 #include "data_structs.h"
 #include "sue.h"
 #include "cc1.h"
@@ -15,8 +16,8 @@ static void sue_set_spel(struct_union_enum_st *sue, char *spel)
 	if(!spel){
 		int len = 6 + 6 + 3 + WHERE_BUF_SIZ + 1 + 1;
 		spel = umalloc(len);
-		snprintf(spel, len, "<anon %s @ %s>",
-				sue_str(sue), where_str(&sue->where));
+		snprintu(spel, len, "<anon %s @ %W>",
+				sue_str(sue), &sue->where);
 	}
 
 	free(sue->spel);
@@ -106,20 +107,16 @@ struct_union_enum_st *sue_add(symtable *const stab, char *spel, sue_member **mem
 	int new = 0;
 
 	if(spel && (sue = sue_find(stab, spel))){
-		char buf[WHERE_BUF_SIZ];
-
-		snprintf(buf, sizeof buf, "%s", where_str(&sue->where));
-
 		/* redef checks */
 		if(sue->primitive != prim)
-			DIE_AT(NULL, "trying to redefine %s as %s (from %s)",
+			DIE_AT(NULL, "trying to redefine %s as %s (from %W)",
 					sue_str(sue),
 					type_primitive_to_str(prim),
-					buf);
+					&sue->where);
 
 		if(members && !sue_incomplete(sue))
-			DIE_AT(NULL, "can't redefine %s %s's members (defined at %s)",
-					sue_str(sue), sue->spel, buf);
+			DIE_AT(NULL, "can't redefine %s %s's members (defined at %W)",
+					sue_str(sue), sue->spel, &sue->where);
 
 	}else{
 		sue = umalloc(sizeof *sue);
@@ -143,10 +140,8 @@ struct_union_enum_st *sue_add(symtable *const stab, char *spel, sue_member **mem
 
 				enum_member_search(&e_mem, &e_sue, stab, spel);
 
-				if(e_mem){
-					char buf[WHERE_BUF_SIZ];
-					DIE_AT(NULL, "redeclaration of enumerator %s (from %s)", spel, where_str_r(buf, &e_sue->where));
-				}
+				if(e_mem)
+					DIE_AT(NULL, "redeclaration of enumerator %s\n%W: from here", spel, &e_sue->where);
 			}
 
 		}else{
@@ -170,10 +165,8 @@ struct_union_enum_st *sue_add(symtable *const stab, char *spel, sue_member **mem
 				&& (d2 = decls[i + 1]->struct_member,
 					!strcmp(d->spel, d2->spel)))
 				{
-					char buf[WHERE_BUF_SIZ];
-
-					DIE_AT(&d2->where, "duplicate member %s (from %s)",
-							d->spel, where_str_r(buf, &d->where));
+					DIE_AT(&d2->where, "duplicate member %s\n%W: from here",
+							d->spel, &d->where);
 				}
 			}
 

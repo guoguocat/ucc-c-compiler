@@ -74,16 +74,11 @@ void fold_expr_assign(expr *e, symtable *stab)
 	e->tree_type = e->lhs->tree_type;
 
 	/* type check */
-	{
-		char bufto[TYPE_REF_STATIC_BUFSIZ], buffrom[TYPE_REF_STATIC_BUFSIZ];
-
-		fold_type_ref_equal(e->lhs->tree_type, e->rhs->tree_type,
-				&e->where, WARN_ASSIGN_MISMATCH, 0,
-				"%s type mismatch: %s <-- %s",
-				e->assign_is_init ? "initialisation" : "assignment",
-				type_ref_to_str_r(bufto,   e->lhs->tree_type),
-				type_ref_to_str_r(buffrom, e->rhs->tree_type));
-	}
+	fold_type_ref_equal(e->lhs->tree_type, e->rhs->tree_type,
+			&e->where, WARN_ASSIGN_MISMATCH, 0,
+			"%s type mismatch: %R <-- %R",
+			e->assign_is_init ? "initialisation" : "assignment",
+			e->lhs->tree_type, e->rhs->tree_type);
 
 
 	/* do the typecheck after the equal-check, since the typecheck inserts casts */

@@ -64,12 +64,13 @@ int fold_type_ref_equal(
 			}
 		}
 
-		/*cc1_warn_at(w, 0, 0, warn, "%s vs. %s for...", decl_to_str(a), decl_to_str_r(buf, b));*/
+		/*cc1_warn_at(w, 0, 0, warn, "%Q vs. %Q for...", a, b);*/
 
 		one_struct = type_ref_is_s_or_u(a) || type_ref_is_s_or_u(b);
 
 		va_start(l, errfmt);
-		cc1_warn_atv(w, one_struct || type_ref_is_void(a) || type_ref_is_void(b), 1, warn, errfmt, l);
+		cc1_warn_atv(w, one_struct || type_ref_is_void(a) || type_ref_is_void(b),
+				1, warn, errfmt, l);
 		va_end(l);
 	}
 fin:
@@ -769,7 +770,6 @@ static void fold_link_decl_defs(dynmap *spel_decls)
 
 	for(i = 0; ; i++){
 		char *key;
-		char wbuf[WHERE_BUF_SIZ];
 		decl *d, *e, *definition, *first_none_extern;
 		decl **decls_for_this, **decl_iter;
 		int count_inline, count_extern, count_static, count_total;
@@ -812,19 +812,16 @@ static void fold_link_decl_defs(dynmap *spel_decls)
 		for(decl_iter = decls_for_this + 1; (e = *decl_iter); decl_iter++){
 			/* check they are the same decl */
 			if(!decl_equal(d, e, DECL_CMP_EXACT_MATCH)){
-				char buf[DECL_STATIC_BUFSIZ];
-
-				DIE_AT(&e->where, "mismatching declaration of %s\n%s\n%s vs %s",
+				DIE_AT(&e->where, "mismatching declaration of %s\n%W: %Q vs %Q",
 						d->spel,
-						where_str_r(wbuf, &d->where),
-						decl_to_str_r(buf, d),
-						decl_to_str(       e));
+						&d->where,
+						d, e);
 			}
 
 			/* check asm renames */
 			if(e->spel_asm){
 				if(asm_rename && strcmp(asm_rename, e->spel_asm))
-					WARN_AT(&d->where, "multiple asm renames\n%s", where_str_r(wbuf, &e->where));
+					WARN_AT(&d->where, "multiple asm renames\n%W", &e->where);
 				asm_rename = e->spel_asm;
 			}
 
@@ -833,7 +830,7 @@ static void fold_link_decl_defs(dynmap *spel_decls)
 
 				if(definition){
 					/* already got one */
-					DIE_AT(&e->where, "duplicate definition of %s (%s)", d->spel, where_str_r(wbuf, &d->where));
+					DIE_AT(&e->where, "duplicate definition of %s (%W)", d->spel, &d->where);
 				}
 
 				definition = e;
@@ -969,7 +966,7 @@ void fold(symtable *globs)
 
 	for(i = 0; D(i); i++)
 		if(D(i)->sym)
-			ICE("%s: sym (%p) already set for global \"%s\"", where_str(&D(i)->where), (void *)D(i)->sym, D(i)->spel);
+			ICE("%W: sym (%p) already set for global \"%s\"", &D(i)->where, (void *)D(i)->sym, D(i)->spel);
 
 	spel_decls = dynmap_new((dynmap_cmp_f *)strcmp);
 

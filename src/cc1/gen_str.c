@@ -5,6 +5,7 @@
 
 #include "../util/util.h"
 #include "../util/platform.h"
+#include "../util/printu.h"
 #include "data_structs.h"
 #include "macros.h"
 #include "sym.h"
@@ -42,7 +43,7 @@ void idt_printf(const char *fmt, ...)
 	idt_print();
 
 	va_start(l, fmt);
-	vfprintf(cc1_out, fmt, l);
+	vfprintu(cc1_out, fmt, l);
 	va_end(l);
 }
 
@@ -199,13 +200,6 @@ void print_funcargs(funcargs *fargs)
 	fprintf(cc1_out, "%s)", fargs->variadic ? ", ..." : "");
 }
 
-void print_type_ref(type_ref *ref, decl *d)
-{
-	char buf[TYPE_REF_STATIC_BUFSIZ];
-	fprintf(cc1_out, "%s",
-			type_ref_to_str_r_spel(buf, ref, d ? d->spel : NULL));
-}
-
 void print_decl_attr(decl_attr *da)
 {
 	for(; da; da = da->next){
@@ -280,7 +274,7 @@ void print_decl(decl *d, enum pdeclargs mode)
 	if(fopt_mode & FOPT_ENGLISH){
 		print_decl_eng(d);
 	}else{
-		print_type_ref(d->ref, d);
+		printu("%Q", d);
 	}
 
 	if(mode & PDECL_SYM_OFFSET){
@@ -346,7 +340,7 @@ void print_expr(expr *e)
 	if(e->tree_type){ /* might be a label */
 		idt_printf("tree_type: ");
 		gen_str_indent++;
-		print_type_ref(e->tree_type, NULL);
+		printu("%R", e->tree_type);
 		gen_str_indent--;
 		fputc('\n', cc1_out);
 	}

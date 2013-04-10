@@ -427,8 +427,8 @@ unsigned decl_size(decl *d)
 	if(d->field_width){
 		intval iv;
 
-		ICW("use of field width - brace for incorrect code (%s)",
-				where_str(&d->where));
+		ICW("use of field width - brace for incorrect code (%W)",
+				&d->where);
 
 		const_fold_need_val(d->field_width, &iv);
 

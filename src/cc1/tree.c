@@ -298,7 +298,7 @@ const char *type_to_str(const type *t)
 			case type_ldouble: SAPPEND("long double");
 
 			case type_unknown:
-				ICE("unknown type primitive (%s)", where_str(&t->where));
+				ICE("unknown type primitive (%W)", &t->where);
 			case type_enum:
 				ICE("enum without ->enu");
 			case type_struct:

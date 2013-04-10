@@ -178,9 +178,8 @@ void gen_expr_cast(expr *e, symtable *stab)
 
 			if(mem){
 				/*char buf[TYPE_REF_STATIC_BUFSIZ];
-				fprintf(stderr, "CAST %s -> %s, adj by %d\n",
-						type_ref_to_str(tfrom),
-						type_ref_to_str_r(buf, tto),
+				fprintf(stderr, "CAST %R -> %R, adj by %d\n",
+						tfrom, tto,
 						mem->struct_offset);*/
 
 				out_change_type(type_ref_new_VOID_PTR());

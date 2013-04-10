@@ -179,19 +179,16 @@ static void asm_declare_init(FILE *f, stmt *init_code, type_ref *tfor)
 			/* scalar */
 			expr *exp = init_code->expr;
 
-			UCC_ASSERT(exp, "no exp for init (%s)", where_str(&init_code->where));
+			UCC_ASSERT(exp, "no exp for init (%W)", &init_code->where);
 			UCC_ASSERT(expr_kind(exp, assign), "not assign");
 
 			exp = exp->rhs; /* rvalue */
 
 			/* exp->tree_type should match tfor */
 			{
-				char buf[TYPE_REF_STATIC_BUFSIZ];
-
 				UCC_ASSERT(type_ref_equal(exp->tree_type, tfor, DECL_CMP_ALLOW_VOID_PTR),
-						"mismatching init types: %s and %s",
-						type_ref_to_str_r(buf, exp->tree_type),
-						type_ref_to_str(tfor));
+						"mismatching init types: %R and %R",
+						exp->tree_type, tfor);
 			}
 
 			fprintf(f, ".%s ", asm_type_directive(exp->tree_type));

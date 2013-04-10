@@ -48,9 +48,8 @@ int symtab_fold(symtable *tab, int current)
 			decl *dup;
 
 			if((dup = typedef_find4(tab, t->spel, t, 0 /*descend*/))){
-				char buf[WHERE_BUF_SIZ];
-				DIE_AT(&dup->where, "redefinition of typedef from:\n%s",
-						where_str_r(buf, &t->where));
+				DIE_AT(&dup->where, "redefinition of typedef from:\n%W",
+						&t->where);
 			}
 
 			fold_decl(t, tab);

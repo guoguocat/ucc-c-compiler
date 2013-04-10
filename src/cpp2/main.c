@@ -11,6 +11,9 @@
 #include "../util/dynarray.h"
 #include "../util/alloc.h"
 #include "../util/platform.h"
+#include "../util/printu.h"
+
+const struct printu printu_extras[] = {{ NULL, 0 }};
 
 static const struct
 {

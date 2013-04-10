@@ -409,16 +409,11 @@ invalid:
 			fold_disallow_st_un(arg, desc);
 
 			if(args_from_decl->arglist && (decl_arg = args_from_decl->arglist[j])){
-				char dbuf[DECL_STATIC_BUFSIZ];
-				char rbuf[TYPE_REF_STATIC_BUFSIZ];
-
 				const int eq = fold_type_ref_equal(
 						decl_arg->ref, arg->tree_type, &arg->where,
 						WARN_ARG_MISMATCH, 0,
-						"mismatching argument %d to %s (%s <-- %s)",
-						i, sp,
-						decl_to_str_r(dbuf, decl_arg),
-						type_ref_to_str_r(rbuf, arg->tree_type));
+						"mismatching argument %d to %s (%Q <-- %R)",
+						i, sp, decl_arg, arg->tree_type);
 
 				if(!eq){
 					fold_insert_casts(decl_arg->ref, &e->funcargs[i],

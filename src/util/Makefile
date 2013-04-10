@@ -1,6 +1,6 @@
 include ../src_config.mk
 
-OBJ = platform.o util.o alloc.o dynarray.o dynmap.o
+OBJ = platform.o util.o alloc.o dynarray.o dynmap.o printu.o
 
 BUILD_CC = ${CC} ${CFLAGS} -c -g -o $@ $<
 

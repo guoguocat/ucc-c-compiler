@@ -113,11 +113,8 @@ void impl_jcond(int true, const char *lbl)
 
 void impl_cast(decl *from, decl *to)
 {
-	char buf[DECL_STATIC_BUFSIZ];
-
 	vm_show_v(vtop);
-	fprintf(cc1_out, "%s <-- %s\n",
-			decl_to_str_r(buf, to), decl_to_str(from));
+	fprintu(cc1_out, "%Q <-- %Q\n", to, from);
 }
 
 void impl_call(int nargs, decl *d_ret, decl *d_func)
