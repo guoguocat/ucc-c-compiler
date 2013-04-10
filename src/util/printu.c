@@ -41,6 +41,8 @@ int vfprintu(FILE *f, const char *fmt, va_list l)
 
 				p[-1] = '\0';
 
+				/* FIXME: can't pass through this va_arg to vfprintf below... */
+
 				new = ustrprintf("%s%s%s",
 						newfmt, found, p + 1);
 				free(newfmt);
