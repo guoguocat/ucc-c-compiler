@@ -16,7 +16,18 @@ if [ $OS = darwin ]
 then OS=freebsd
 fi
 
+vstr=`${CC:-cc} -v 2>&1`
+compiler_is(){
+	echo "$vstr" | grep "$1" > /dev/null
+	return $?
+}
+
+if   compiler_is   gcc; then WARN_FLAGS='-Wno-override-init'
+elif compiler_is clang; then WARN_FLAGS='-Wno-initializer-overrides'
+fi
+
 cat > config.mk <<!
 OS_NAME = $OS
 ARCH    = $ARCH
+WARN_FLAGS = $WARN_FLAGS
 !
