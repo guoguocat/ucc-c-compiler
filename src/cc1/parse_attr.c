@@ -1,3 +1,5 @@
+#define USCORE_CHECK(a, b) !strcmp(a, b) || !strcmp(a, "__" b "__")
+
 decl_attr *parse_attr_format()
 {
 	/* __attribute__((format (printf, fmtarg, firstvararg))) */
@@ -14,11 +16,9 @@ decl_attr *parse_attr_format()
 
 	da = decl_attr_new(attr_format);
 
-#define CHECK(s) !strcmp(func, s) || !strcmp(func, "__" s "__")
-
-	if(CHECK("printf"))
+	if(USCORE_CHECK(func, "printf"))
 		da->attr_extra.format.fmt_func = attr_fmt_printf;
-	else if(CHECK("scanf"))
+	else if(USCORE_CHECK(func, "scanf"))
 		da->attr_extra.format.fmt_func = attr_fmt_scanf;
 	else
 		DIE_AT(&da->where, "unknown format func \"%s\"", func);
@@ -152,6 +152,35 @@ decl_attr *parse_attr_aligned()
 	return da;
 }
 
+decl_attr *parse_attr_mode()
+{
+	decl_attr *da = decl_attr_new(attr_mode);
+	char *sp;
+
+	EAT(token_open_paren);
+
+	sp = token_current_spel();
+	if(!accept(token_identifier))
+		DIE_AT(NULL, "identifier expected for mode attribute");
+
+#define MODE(x)                       \
+	if(USCORE_CHECK(sp, #x)){           \
+		da->attr_extra.mode = mode_ ## x; \
+		goto fin;                         \
+	}
+
+	MODE(QI);
+	MODE(HI);
+	MODE(SI);
+	MODE(DI);
+#undef MODE
+
+	DIE_AT(NULL, "unknown machine mode \"%s\"", sp);
+
+fin:
+	return da;
+}
+
 #define EMPTY(t)                      \
 decl_attr *parse_ ## t()              \
 {                                     \
@@ -184,6 +213,7 @@ static struct
 	ATTR(packed),
 	ATTR(sentinel),
 	ATTR(aligned),
+	ATTR(mode),
 #undef ATTR
 
 	/* compat */

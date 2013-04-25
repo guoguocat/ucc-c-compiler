@@ -18,6 +18,7 @@ struct decl_attr
 		attr_packed,
 		attr_sentinel,
 		attr_aligned,
+		attr_mode,
 		attr_LAST
 		/*
 		 * TODO: warning, cdecl, stdcall, fastcall
@@ -37,6 +38,7 @@ struct decl_attr
 		unsigned long nonnull_args; /* limits to sizeof(long)*8 args, i.e. 64 */
 		unsigned long align;
 		unsigned sentinel;
+		enum { mode_QI, mode_HI, mode_SI, mode_DI } mode;
 	} attr_extra;
 
 	decl_attr *next;
