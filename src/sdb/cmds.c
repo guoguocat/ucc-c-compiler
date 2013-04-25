@@ -256,7 +256,8 @@ int
 cmd_dispatch(tracee *child, char **inp)
 {
 	/* TODO: parse cmd, tab completion, shortened recognition (e.g. "disas") */
-	const size_t len = strlen(*inp);
+	char *slash = strchr(inp[0], '/');
+	const size_t len = slash ? (unsigned)(slash - inp[0]) : strlen(*inp);
 	const struct dispatch *found = NULL;
 	int ret = DISPATCH_REPROMPT;
 
