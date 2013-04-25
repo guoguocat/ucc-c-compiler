@@ -261,10 +261,14 @@ cmd_dispatch(tracee *child, char **inp)
 	const struct dispatch *found = NULL;
 	int ret = DISPATCH_REPROMPT;
 
+	if(len == 0)
+		return DISPATCH_REPROMPT;
+
 	for(int i = 0; cmds[i].s; i++)
 		if(!strncmp(cmds[i].s, inp[0], len)){
 			if(found){
 				warn("ambiguous command \"%s\"", inp[0]);
+				warn("first two: \"%s\" and \"%s\"", cmds[i].s, found[i].s);
 				return DISPATCH_REPROMPT;
 			}
 			found = &cmds[i];
