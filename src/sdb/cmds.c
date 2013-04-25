@@ -4,6 +4,8 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <ctype.h>
+#include <limits.h>
 
 #include "util.h"
 #include "../util/dynarray.h"
@@ -58,10 +60,119 @@ c_break(tracee *child, char **argv)
 	return DISPATCH_REPROMPT;
 }
 
+enum examine_type
+{
+#define TYPE(ch, fmt, nam, cast) nam,
+#include "examine_type.def"
+#undef TYPE
+};
+
+static int
+examine_parse_fmt(char *fmt,
+		unsigned *pcount, unsigned *psize,
+		enum examine_type *p_ty)
+{
+	/* defaults */
+	*pcount = 1, *psize = sizeof(int);
+	*p_ty = x_hex;
+
+	if(!fmt)
+		return 1;
+
+	char *end;
+	if(isdigit(*fmt)){
+		errno = 0;
+		*pcount = strtol(fmt, &end, 0);
+		if(errno)
+			return 0;
+	}else{
+		end = fmt;
+	}
+
+	/* type */
+	switch(*end){
+		default:
+			break; /* no type given */
+		case '\0': goto done;
+#define TYPE(ch, fmt, ty, cast) case ch: *p_ty = ty; end++; break;
+#include "examine_type.def"
+#undef TYPE
+	}
+
+	/* size */
+	switch(*end){
+		default:
+			break; /* no size given */
+		case '\0': goto done;
+#define SIZE(ch, n) case ch: *psize = n; end++; break
+		SIZE('b', 1);
+		SIZE('h', 2);
+		SIZE('w', 4);
+		SIZE('g', 8);
+#undef SIZE
+	}
+
+	if(*end){
+		warn("extra characters at end of format: \"%s\"", end);
+		return 0;
+	}
+
+done:
+	return 1;
+}
+
 static int
 c_examine(tracee *child, char **argv)
 {
-	/* TODO */
+	char *fmt = strchr(argv[0], '/');
+	if(fmt)
+		*fmt++ = '\0';
+
+	if(ARGC(argv) != 2){
+		warn("Usage: %s[/fmt] [addr]", *argv);
+		warn("  fmt = <count><type><size>");
+		warn("  size: Byte, Half, Word, Giant");
+		warn("  type: Octal, heX, Decimal, Unsigned, t(binary)");
+		warn("        Float, Address, Instruction, Char, String");
+		return DISPATCH_REPROMPT;
+	}
+
+	errno = 0;
+	addr_t addr = strtol(argv[1], NULL, 0 /* auto base */);
+	if(errno){
+		warn("%s: invalid number '%s' (%s)", argv[1], strerror(errno));
+		return DISPATCH_REPROMPT;
+	}
+
+	unsigned count, size;
+	enum examine_type ty;
+	if(!examine_parse_fmt(fmt, &count, &size, &ty))
+		return DISPATCH_REPROMPT;
+
+	for(; count > 0; count--){
+		word_t val;
+		if(arch_mem_read(child->pid, addr, &val)){
+			warn("read memory at 0x%x: %s", addr, strerror(errno));
+			break;
+		}
+		printf("0x%lx: ", addr);
+
+		/* we read a full word - trim */
+		switch(size){
+			case 1: val &= UCHAR_MAX; break;
+			case 2: val &= USHRT_MAX; break;
+			case 4: val &= UINT_MAX ; break;
+			case 8: val &= ULONG_MAX; break;
+		}
+
+		switch(ty){
+#define TYPE(ch, fmt, ty, cast) case ty: printf(fmt "\n", *(cast *)&val); break;
+#include "examine_type.def"
+#undef TYPE
+		}
+		addr += size;
+	}
+
 	return DISPATCH_REPROMPT;
 }
 

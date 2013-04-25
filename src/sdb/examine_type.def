@@ -1,0 +1,13 @@
+TYPE('o', "0%lo",       x_oct,   unsigned long)
+TYPE('x', "0x%lx",      x_hex,   unsigned long)
+TYPE('d', "%d",         x_deci,  signed)
+TYPE('u', "%u",         x_udeci, unsigned)
+TYPE('f', "%f",         x_float, float)
+TYPE('a', "%p",         x_addr,  void *)
+TYPE('c', "'\\x%x'",    x_char,  char)
+
+/* special */
+/*TYPE('t',  NULL,   x_bin,   int)
+TYPE('i',  NULL,   x_insn,  int)*/
+
+/*TYPE('s',  NULL,   x_str,   unsigned long) - unsupported */
