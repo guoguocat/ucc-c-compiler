@@ -24,13 +24,13 @@ int arch_pseudo_reg(enum pseudo_reg r)
 	return -1;
 }
 
-int arch_read(pid_t pid, addr_t addr, void *p, size_t l)
+int arch_mem_read(pid_t pid, addr_t addr, word_t *p)
 {
 	errno = ENOSYS;
 	return -1;
 }
 
-int arch_write(pid_t pid, addr_t addr, const void *p, size_t l)
+int arch_mem_write(pid_t pid, addr_t addr, word_t l)
 {
 	errno = ENOSYS;
 	return -1;
