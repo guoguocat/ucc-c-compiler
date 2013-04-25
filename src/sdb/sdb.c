@@ -144,6 +144,11 @@ main(int argc, char **argv)
 	char *d = NULL;
 	unsigned i = 1;
 
+	if(argc <= 1){
+		fprintf(stderr, "Usage: %s [-d dir] [command [args...]]\n", *argv);
+		return 1;
+	}
+
 	if(argc > 2 && !strcmp(argv[i], "-d")){
 		d = argv[++i];
 		i++;
@@ -164,6 +169,5 @@ main(int argc, char **argv)
 			run_debugger(&child);
 	}
 
-	fprintf(stderr, "Usage: %s [-d dir] [command [args...]]\n", *argv);
 	return 1;
 }
