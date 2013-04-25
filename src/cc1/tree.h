@@ -74,6 +74,7 @@ type *type_new(void);
 type *type_new_primitive(enum type_primitive);
 type *type_new_primitive_signed(enum type_primitive, int is_signed);
 type *type_copy(type *);
+enum type_primitive type_primitive_from_size(unsigned sz);
 #define type_free(x) free(x)
 
 void where_new(struct where *w);

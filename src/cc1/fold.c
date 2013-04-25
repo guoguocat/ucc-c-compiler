@@ -475,6 +475,26 @@ void fold_decl(decl *d, symtable *stab)
 		d->align->resolved = max_al;
 	}
 
+	if((attrib = decl_has_attr(d, attr_mode))){
+		unsigned sz, new_sz;
+
+		if(!type_ref_is_integral(d->ref)){
+			DIE_AT(&d->where, "mode attribute on non-integral type \"%s\"",
+					type_ref_to_str(d->ref));
+		}
+
+		sz = type_ref_size(d->ref, &d->where);
+		new_sz = MACHINE_MODE_SIZE(attrib->attr_extra.mode);
+
+		if(sz != new_sz){
+			EOF_WHERE(&d->where,
+				d->ref = type_ref_new_type(
+						type_new_primitive_signed(
+							type_primitive_from_size(new_sz),
+							type_ref_is_signed(d->ref))));
+		}
+	}
+
 	if(d->init){
 		if((d->store & STORE_MASK_STORE) == store_extern){
 			/* allow for globals - remove extern since it's a definition */

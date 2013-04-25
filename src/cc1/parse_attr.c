@@ -178,6 +178,8 @@ decl_attr *parse_attr_mode()
 	DIE_AT(NULL, "unknown machine mode \"%s\"", sp);
 
 fin:
+	EAT(token_close_paren);
+
 	return da;
 }
 

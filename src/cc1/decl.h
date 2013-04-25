@@ -39,6 +39,7 @@ struct decl_attr
 		unsigned long align;
 		unsigned sentinel;
 		enum { mode_QI, mode_HI, mode_SI, mode_DI } mode;
+#define MACHINE_MODE_SIZE(m) (unsigned[]){1, 2, 4, 8}[m]
 	} attr_extra;
 
 	decl_attr *next;

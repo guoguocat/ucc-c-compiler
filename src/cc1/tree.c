@@ -123,6 +123,17 @@ int type_primitive_size(enum type_primitive tp)
 	return -1;
 }
 
+enum type_primitive type_primitive_from_size(unsigned sz)
+{
+	switch(sz){
+		case 1: return type_char;
+		case 2: return type_short;
+		case 4: return type_int;
+		case 8: return type_long; /* FIXME: 4 on 32-bit */
+	}
+	ICE("bad size %u for tp_from_size", sz);
+}
+
 int type_size(const type *t, where const *from)
 {
 	if(t->sue)
