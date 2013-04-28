@@ -402,7 +402,7 @@ cmd_dispatch(tracee *child, char **inp)
 		if(!strncmp(cmds[i].s, inp[0], len)){
 			if(found){
 				warn("ambiguous command \"%s\"", inp[0]);
-				warn("first two: \"%s\" and \"%s\"", cmds[i].s, found[i].s);
+				warn("first two: \"%s\" and \"%s\"", cmds[i].s, found->s);
 				return DISPATCH_REPROMPT;
 			}
 			found = &cmds[i];
