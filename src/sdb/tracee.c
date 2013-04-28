@@ -86,14 +86,17 @@ retry:
 		goto buh;
 	}
 
-	if(WIFEXITED(wstatus)){
-		t->event = TRACEE_EXITED;
-		t->evt.exit_code = WEXITSTATUS(wstatus);
-		return;
-	}else if(WIFSIGNALED(wstatus) && WTERMSIG(wstatus) == SIGKILL){
+	if(WIFEXITED(wstatus)
+	|| (kill(t->pid, 0) == -1 && errno == ESRCH))
+	{
 		/* dead */
-		t->event = TRACEE_KILLED;
-		t->evt.sig = SIGKILL;
+		if(WIFSIGNALED(wstatus)){
+			t->event = TRACEE_KILLED;
+			t->evt.sig = WTERMSIG(wstatus);
+		}else{
+			t->event = TRACEE_EXITED;
+			t->evt.exit_code = WEXITSTATUS(wstatus);
+		}
 		return;
 	}
 
