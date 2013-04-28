@@ -13,6 +13,7 @@ typedef struct tracee
 		TRACEE_SIGNALED,
 		TRACEE_EXITED,
 		TRACEE_KILLED,
+		TRACEE_DETACHED,
 	} event;
 
 	union
@@ -32,6 +33,7 @@ void tracee_traceme(void);
 
 pid_t tracee_create(tracee *t);
 int   tracee_attach(tracee *t, pid_t);
+int   tracee_detach(tracee *t);
 int   tracee_leave( tracee *t);
 
 void  tracee_wait(tracee *t, reg_t *p_ip);

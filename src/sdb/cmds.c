@@ -46,6 +46,17 @@ c_quit(tracee *child, char **argv)
 }
 
 static int
+c_detach(tracee *child, char **argv)
+{
+	NO_ARGS();
+
+	if(tracee_detach(child))
+		warn("detach(%d):", child->pid);
+
+	return DISPATCH_REPROMPT;
+}
+
+static int
 c_break(tracee *child, char **argv)
 {
 	if(ARG_CHECK(> 2)){
@@ -365,6 +376,7 @@ static const struct dispatch
 	{ "cont",   c_cont,           1 },
 	{ "step",   c_step,           1 },
 	{ "signal", c_sig,            1 }, /* TODO: lazy */
+	{ "detach", c_detach,         1 },
 
 	{ NULL }
 };

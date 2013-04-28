@@ -39,10 +39,16 @@ int tracee_attach(tracee *t, pid_t pid)
 	return 0;
 }
 
+int tracee_detach(tracee *t)
+{
+	t->event = TRACEE_DETACHED;
+	return os_ptrace(SDB_DETACH, t->pid, 0, /*sig*/ 0);
+}
+
 int tracee_leave(tracee *t) /*, int sig) */
 {
 	if(t->attached_to)
-		return os_ptrace(SDB_DETACH, t->pid, 0, /*sig*/ 0);
+		tracee_detach(t);
 
 	tracee_kill(t, /*sig*/ SIGKILL);
 	return 0;
@@ -165,6 +171,7 @@ int tracee_alive(tracee *t)
 	switch(t->event){
 		case TRACEE_KILLED:
 		case TRACEE_EXITED:
+		case TRACEE_DETACHED:
 			return 0;
 		case TRACEE_BREAK:
 		case TRACEE_SIGNALED:

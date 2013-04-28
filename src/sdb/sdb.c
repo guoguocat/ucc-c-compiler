@@ -81,6 +81,10 @@ run_debugger(tracee *child)
 				printf("exited with code %d\n", child->evt.exit_code);
 				break;
 
+			case TRACEE_DETACHED:
+				printf("detached\n");
+				break;
+
 			case TRACEE_KILLED:
 				printf("killed with signal %d\n", child->evt.sig);
 				break;
