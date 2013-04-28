@@ -288,13 +288,14 @@ c_sig(tracee *child, char **argv)
 	if(ARG_CHECK(< 2)){
 usage:
 		warn("Usage: %s send SIG\n"
+				 "       %s cont SIG\n"
 				 "       %s print|stop|pass... SIG...",
-				 *argv, *argv);
+				 *argv, *argv, *argv);
 		return DISPATCH_REPROMPT;
 	}
 
 	const int argc = ARGC(argv);
-	if(!strcmp_lim(argv[1], "send")){
+	if(!strcmp_lim(argv[1], "send") || !strcmp_lim(argv[1], "continue")){
 		if(argc != 3)
 			goto usage;
 
@@ -304,7 +305,7 @@ usage:
 			goto out;
 		}
 
-		tracee_kill(child, sig);
+		(*argv[1] == 'c' ? tracee_cont : tracee_kill)(child, sig);
 		return DISPATCH_WAIT;
 
 	}else{

@@ -132,6 +132,11 @@ void tracee_kill(tracee *t, int sig)
 		warn("kill():");
 }
 
+void tracee_cont(tracee *t, int sig)
+{
+	tracee_ptrace(t, SDB_CONT, NULL, (void *)(long)sig);
+}
+
 int tracee_alive(tracee *t)
 {
 	switch(t->event){

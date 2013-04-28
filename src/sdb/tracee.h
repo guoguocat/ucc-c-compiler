@@ -31,6 +31,7 @@ pid_t tracee_create(tracee *t);
 void  tracee_wait(tracee *t, reg_t *p_ip);
 
 void  tracee_kill(tracee *t, int sig);
+void  tracee_cont(tracee *t, int sig); /* continue with signal */
 int   tracee_alive(tracee *t);
 
 void  tracee_continue(tracee *t);
