@@ -120,9 +120,9 @@ buh:
 	}
 }
 
-static void tracee_ptrace(int req, pid_t pid, void *addr, void *data)
+static void tracee_ptrace(tracee *t, int req, void *addr, void *data)
 {
-	if(os_ptrace(req, pid, addr, data) < 0)
+	if(os_ptrace(req, t->pid, addr, data) < 0)
 		warn("ptrace():");
 }
 
@@ -169,7 +169,7 @@ static int tracee_step_bkpt(tracee *t)
 
 		/* step over the breakpoint,
 		 * then re-enable */
-		tracee_ptrace(SDB_SINGLESTEP, t->pid,
+		tracee_ptrace(t, SDB_SINGLESTEP,
 				ADDR_ARG_NONE, SIG_ARG_NONE);
 
 		tracee_wait(t, NULL);
@@ -188,7 +188,7 @@ void tracee_step(tracee *t)
 {
 	tracee_step_bkpt(t);
 
-	tracee_ptrace(SDB_SINGLESTEP, t->pid,
+	tracee_ptrace(t, SDB_SINGLESTEP,
 			ADDR_ARG_NONE, SIG_ARG_NONE);
 }
 
@@ -196,7 +196,7 @@ void tracee_continue(tracee *t)
 {
 	tracee_step_bkpt(t);
 
-	tracee_ptrace(SDB_CONT, t->pid,
+	tracee_ptrace(t, SDB_CONT,
 			ADDR_ARG_NONE, SIG_ARG_NONE);
 }
 
