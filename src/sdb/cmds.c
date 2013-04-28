@@ -18,11 +18,21 @@
 
 #define strcmp_lim(a, k) strncmp(a, k, strlen(a))
 
+#define ARG_CHECK(exp) (ARGC(argv) exp) || (argv[1] && !strcmp(argv[1], HELP_ARG))
+#define NO_ARGS()             \
+	if(ARG_CHECK(!= 1)){        \
+		warn("Usage: %s", *argv); \
+		return DISPATCH_REPROMPT; \
+	}
+#define HELP_ARG "-h"
+
 enum { DISPATCH_REPROMPT = 0, DISPATCH_WAIT = 1 };
 
 static int
 c_kill(tracee *child, char **argv)
 {
+	NO_ARGS();
+
 	tracee_kill(child, SIGKILL);
 	return DISPATCH_WAIT;
 }
@@ -30,6 +40,8 @@ c_kill(tracee *child, char **argv)
 int
 c_quit(tracee *child, char **argv)
 {
+	NO_ARGS();
+
 	if(tracee_alive(child))
 		c_kill(child, argv);
 	exit(0);
@@ -38,7 +50,7 @@ c_quit(tracee *child, char **argv)
 static int
 c_break(tracee *child, char **argv)
 {
-	if(ARGC(argv) > 2){
+	if(ARG_CHECK(> 2)){
 		warn("Usage: %s [addr]", *argv);
 		return DISPATCH_REPROMPT;
 	}
@@ -128,7 +140,7 @@ c_examine(tracee *child, char **argv)
 	if(fmt)
 		*fmt++ = '\0';
 
-	if(ARGC(argv) != 2){
+	if(ARG_CHECK(!= 2)){
 		warn("Usage: %s[/fmt] [addr]", *argv);
 		warn("  fmt = <count><type><size>");
 		warn("  size: Byte, Half, Word, Giant");
@@ -182,8 +194,9 @@ c_help(tracee *, char **argv);
 static int
 c_regs_read(tracee *t, char **argv)
 {
-	const char **r;
+	NO_ARGS();
 
+	const char **r;
 	for(r = arch_reg_names(); *r; r++){
 		int i = arch_reg_offset(*r);
 
@@ -201,6 +214,8 @@ c_regs_read(tracee *t, char **argv)
 
 static int c_cont(tracee *t, char **argv)
 {
+	NO_ARGS();
+
 	tracee_continue(t);
 
 	return DISPATCH_WAIT;
@@ -208,6 +223,8 @@ static int c_cont(tracee *t, char **argv)
 
 static int c_step(tracee *t, char **argv)
 {
+	NO_ARGS();
+
 	tracee_step(t);
 
 	return DISPATCH_WAIT;
@@ -215,7 +232,7 @@ static int c_step(tracee *t, char **argv)
 
 static int c_reg_read(tracee *t, char **argv)
 {
-	if(ARGC(argv) != 2){
+	if(ARG_CHECK(!= 2)){
 		warn("Usage: %s register", *argv);
 		return DISPATCH_REPROMPT;
 	}
@@ -239,7 +256,7 @@ static int c_reg_read(tracee *t, char **argv)
 
 static int c_reg_write(tracee *t, char **argv)
 {
-	if(ARGC(argv) != 3){
+	if(ARG_CHECK(!= 3)){
 		warn("Usage: %s register value", *argv);
 		return DISPATCH_REPROMPT;
 	}
@@ -268,8 +285,7 @@ c_sig(tracee *child, char **argv)
 	/* e.g. sig TRAP USR1 stop pass
 	 *      sig INT send
 	 */
-	const int argc = ARGC(argv);
-	if(argc < 2){
+	if(ARG_CHECK(< 2)){
 usage:
 		warn("Usage: %s send SIG\n"
 				 "       %s print|stop|pass... SIG...",
@@ -277,6 +293,7 @@ usage:
 		return DISPATCH_REPROMPT;
 	}
 
+	const int argc = ARGC(argv);
 	if(!strcmp_lim(argv[1], "send")){
 		if(argc != 3)
 			goto usage;
@@ -356,9 +373,14 @@ static const struct dispatch
 static int
 c_help(tracee *child, char **argv)
 {
-	printf("available commands:\n");
-	for(int i = 0; cmds[i].s; i++)
-		printf("  %s\n", cmds[i].s);
+	if(ARG_CHECK(!= 2)){
+		printf("available commands:\n");
+		for(int i = 0; cmds[i].s; i++)
+			printf("  %s\n", cmds[i].s);
+	}else{
+		/* two args - "help cmd" */
+		cmd_dispatch(child, (char *[]){ argv[1], HELP_ARG, NULL });
+	}
 
 	return DISPATCH_REPROMPT;
 }
