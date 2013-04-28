@@ -42,9 +42,7 @@ c_quit(tracee *child, char **argv)
 {
 	NO_ARGS();
 
-	if(tracee_alive(child))
-		c_kill(child, argv);
-	exit(0);
+	sdb_exit(child);
 }
 
 static int

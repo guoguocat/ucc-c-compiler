@@ -23,11 +23,17 @@ typedef struct tracee
 	} evt;
 
 	bkpt **bkpts;
+
+	int attached_to; /* did we attach or create? - used at exit */
+
 } tracee;
 
 void tracee_traceme(void);
 
 pid_t tracee_create(tracee *t);
+int   tracee_attach(tracee *t, pid_t);
+int   tracee_leave( tracee *t);
+
 void  tracee_wait(tracee *t, reg_t *p_ip);
 
 void  tracee_kill(tracee *t, int sig);

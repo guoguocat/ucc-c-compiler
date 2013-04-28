@@ -14,6 +14,8 @@
 
 #include "../util/dynarray.h"
 
+#define TRACEE_INIT(t) memset(t, 0, sizeof *t)
+
 void tracee_traceme()
 {
 	if(os_ptrace(SDB_TRACEME, 0, 0, 0) < 0)
@@ -22,12 +24,28 @@ void tracee_traceme()
 
 pid_t tracee_create(tracee *t)
 {
-	memset(t, 0, sizeof *t);
+	TRACEE_INIT(t);
 
-	if((t->pid = fork()) == -1)
-		die("fork():");
+	return t->pid = fork();
+}
 
-	return t->pid;
+int tracee_attach(tracee *t, pid_t pid)
+{
+	TRACEE_INIT(t);
+
+	if(os_ptrace(SDB_ATTACH, t->pid = pid, 0, 0) < 0)
+		return -1;
+	t->attached_to = 1;
+	return 0;
+}
+
+int tracee_leave(tracee *t) /*, int sig) */
+{
+	if(t->attached_to)
+		return os_ptrace(SDB_DETACH, t->pid, 0, /*sig*/ 0);
+
+	tracee_kill(t, /*sig*/ SIGKILL);
+	return 0;
 }
 
 static bkpt *tracee_find_breakpoint(tracee *t, addr_t loc)
@@ -87,13 +105,12 @@ retry:
 	}
 
 	if(WIFEXITED(wstatus)
-	|| (kill(t->pid, 0) == -1 && errno == ESRCH))
+	|| (WIFSIGNALED(wstatus) && WTERMSIG(wstatus) == SIGKILL))
 	{
-		/* dead */
 		if(WIFSIGNALED(wstatus)){
 			t->event = TRACEE_KILLED;
 			t->evt.sig = WTERMSIG(wstatus);
-		}else{
+		}else if(WIFEXITED(wstatus)){
 			t->event = TRACEE_EXITED;
 			t->evt.exit_code = WEXITSTATUS(wstatus);
 		}
@@ -101,8 +118,14 @@ retry:
 	}
 
 	reg_t ip;
-	if(tracee_get_reg(t, ARCH_REG_IP, &ip))
+	if(tracee_get_reg(t, ARCH_REG_IP, &ip)){
+		if(errno == ESRCH){
+			t->event = TRACEE_EXITED;
+			t->evt.exit_code = WEXITSTATUS(wstatus);
+			return;
+		}
 		warn("read IP:");
+	}
 	if(p_ip)
 		*p_ip = ip;
 

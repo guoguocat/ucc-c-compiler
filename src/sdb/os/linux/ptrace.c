@@ -12,6 +12,8 @@ long os_ptrace(enum os_pt req, pid_t pid, void *addr, void *data)
 		MAP(TRACEME);
 		MAP(SINGLESTEP);
 		MAP(CONT);
+		MAP(ATTACH);
+		MAP(DETACH);
 	}
 
 	return ptrace(r, pid, addr, data);

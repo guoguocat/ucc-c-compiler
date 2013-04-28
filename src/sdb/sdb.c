@@ -15,6 +15,15 @@
 #include "prompt.h"
 #include "signal.h"
 
+void
+sdb_exit(tracee *child)
+{
+	if(child && tracee_alive(child))
+		tracee_leave(child);
+
+	exit(0);
+}
+
 static noreturn void
 run_target(char **argv)
 {
@@ -30,7 +39,9 @@ static tracee *current_child;
 static void
 pass_sig(int sig)
 {
-	if(tracee_alive(current_child)
+	/* if we attached, we need to forward signals, otherwise it's a child in our pgrp */
+	if(current_child->attached_to
+	&& tracee_alive(current_child)
 	&& kill(current_child->pid, sig))
 	{
 		warn("kill(%d, %d):", current_child->pid, sig);
@@ -144,8 +155,11 @@ main(int argc, char **argv)
 	char *d = NULL;
 	unsigned i = 1;
 
-	if(argc <= 1){
-		fprintf(stderr, "Usage: %s [-d dir] [command [args...]]\n", *argv);
+	if(argc < 2){
+usage:
+		fprintf(stderr, "Usage: %s [-d dir] -p pid\n"
+				            "       %s [-d dir] [--] command [args...]\n",
+										*argv, *argv);
 		return 1;
 	}
 
@@ -154,20 +168,35 @@ main(int argc, char **argv)
 		i++;
 	}
 
+	if(!argv[i])
+		goto usage;
+
 	char buf[16];
 	if(!d)
 		snprintf(buf, sizeof buf, "sdb.%d", getpid());
 	setup_dir(d ? d : buf);
 
 	tracee child;
-	switch(tracee_create(&child)){
-		case 0:
-			run_target(argv + i);
-			break;
+	if(!strcmp(argv[i], "-p")){
+		const pid_t pid = atoi(argv[++i]);
 
-		default:
-			run_debugger(&child);
+		if(tracee_attach(&child, pid))
+			die("attach(%d):", pid);
+	}else{
+		switch(tracee_create(&child)){
+			case 0:
+				run_target(argv + i);
+				return 1;
+
+			case -1:
+				die("fork():");
+
+			default:
+				break;
+		}
 	}
 
-	return 1;
+	run_debugger(&child);
+
+	sdb_exit(&child);
 }
