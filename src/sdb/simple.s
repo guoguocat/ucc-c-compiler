@@ -1,13 +1,13 @@
 .globl _start
 _start:
-	movl $35, %eax # SYS_nanosleep
+	#movl $35, %eax # SYS_nanosleep
 
-	pushq $0 # nano
-	pushq $60 # sec
+	#pushq $0 # nano
+	#pushq $60 # sec
 
-	movq %rsp, %rdi
-	xorq %rsi, %rsi
-	syscall
+	#movq %rsp, %rdi
+	#xorq %rsi, %rsi
+	#syscall
 
 	movl $0, %ebx
 
