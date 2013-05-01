@@ -20,7 +20,7 @@ sdb: ${OBJ}
 
 simple: simple.s
 	as -o simple.o simple.s
-	ld -o simple simple.o
+	ld -e _start -o simple simple.o
 
 clean:
 	rm -f ${OBJ} sdb
