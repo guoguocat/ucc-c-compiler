@@ -441,6 +441,7 @@ usage:
 	show_current_line = fopt_mode & FOPT_SHOW_LINE;
 
 	globs = symtabg_new();
+	builtin_init(globs);
 	tokenise_set_input(next_line, fname);
 	parse(globs);
 

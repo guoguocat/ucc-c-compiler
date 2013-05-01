@@ -31,20 +31,15 @@ static func_builtin_parse parse_unreachable,
                           parse_constant_p,
                           parse_frame_address,
                           parse_expect,
-                          parse_strlen,
                           parse_is_signed;
-#ifdef BUILTIN_LIBC_FUNCTIONS
-                          parse_memset,
-                          parse_memcpy;
-#endif
 
 typedef struct
 {
 	const char *sp;
 	func_builtin_parse *parser;
-} builtin_table;
+} builtin_entry;
 
-builtin_table builtins[] = {
+builtin_entry builtins[] = {
 	{ "unreachable", parse_unreachable },
 	{ "trap", parse_unreachable }, /* same */
 
@@ -58,18 +53,31 @@ builtin_table builtins[] = {
 	{ "is_signed", parse_is_signed },
 
 	{ NULL, NULL }
-
-}, no_prefix_builtins[] = {
-	{ "strlen", parse_strlen },
-#ifdef BUILTIN_LIBC_FUNCTIONS
-	{ "memset", parse_memset },
-	{ "memcpy", parse_memcpy },
-#endif
-
-	{ NULL, NULL }
 };
 
-static builtin_table *builtin_table_search(builtin_table *tab, const char *sp)
+static char *builtin_next()
+{
+	static int idx;
+	char *lines[] = {
+		"unsigned long strlen(const char *);",
+		"void *memset(void *, int, unsigned long);",
+		"void *memcpy(void *, const void *, unsigned long);",
+		NULL
+	};
+
+	char *s = lines[idx];
+	if(s)
+		idx++;
+	return s;
+}
+
+void builtin_init(symtable_global *gstab)
+{
+	tokenise_set_input(builtin_next, "<builtin>");
+	parse(gstab);
+}
+
+static builtin_entry *builtin_table_search(builtin_entry *tab, const char *sp)
 {
 	int i;
 	for(i = 0; tab[i].sp; i++)
@@ -78,35 +86,22 @@ static builtin_table *builtin_table_search(builtin_table *tab, const char *sp)
 	return NULL;
 }
 
-static builtin_table *builtin_find(const char *sp)
+static builtin_entry *builtin_find(const char *sp)
 {
 	static unsigned prefix_len;
-	builtin_table *found;
-
-	found = builtin_table_search(no_prefix_builtins, sp);
-	if(found)
-		return found;
 
 	if(!prefix_len)
 		prefix_len = strlen(PREFIX);
 
-	if(strlen(sp) < prefix_len)
-		return NULL;
-
 	if(!strncmp(sp, PREFIX, prefix_len))
-		found = builtin_table_search(builtins, sp + prefix_len);
-	else
-		found = NULL;
+		return builtin_table_search(builtins, sp + prefix_len);
 
-	if(!found) /* look for __builtin_strlen, etc */
-		found = builtin_table_search(no_prefix_builtins, sp + prefix_len);
-
-	return found;
+	return NULL;
 }
 
 expr *builtin_parse(const char *sp)
 {
-	builtin_table *b;
+	builtin_entry *b;
 
 	if((fopt_mode & FOPT_BUILTIN) && (b = builtin_find(sp))){
 		expr *(*f)(void) = b->parser;
@@ -127,7 +122,6 @@ expr *builtin_parse(const char *sp)
 	exp->f_const_fold = const_ ## to
 
 #define expr_mutate_builtin_gen(exp, to)  \
-	exp->f_fold = fold_ ## to,              \
 	exp->f_gen  = builtin_gen_ ## to
 
 static void wur_builtin(expr *e)
@@ -151,19 +145,6 @@ static expr *parse_any_args(void)
 }
 
 /* --- memset */
-
-static void fold_memset(expr *e, symtable *stab)
-{
-	FOLD_EXPR(e->lhs, stab);
-
-	if(e->bits.builtin_memset.len == 0)
-		WARN_AT(&e->where, "zero size memset");
-
-	if((unsigned)e->bits.builtin_memset.ch > 255)
-		WARN_AT(&e->where, "memset with value > UCHAR_MAX");
-
-	e->tree_type = type_ref_cached_VOID_PTR();
-}
 
 static void builtin_gen_memset(expr *e, symtable *stab)
 {
@@ -228,25 +209,12 @@ expr *builtin_new_memset(expr *p, int ch, size_t len)
 
 	expr_mutate_builtin_gen(fcall, memset);
 
-	fcall->lhs = p;
-	fcall->bits.builtin_memset.ch = ch;
-	fcall->bits.builtin_memset.len = len;
+	dynarray_add(&fcall->funcargs, p);
+	dynarray_add(&fcall->funcargs, expr_new_val(ch));
+	dynarray_add(&fcall->funcargs, expr_new_val(len));
 
 	return fcall;
 }
-
-#ifdef BUILTIN_LIBC_FUNCTIONS
-static expr *parse_memset(void)
-{
-	expr *fcall = parse_any_args();
-
-	ICE("TODO: builtin memset parsing");
-
-	expr_mutate_builtin_gen(fcall, memset);
-
-	return fcall;
-}
-#endif
 
 /* --- memcpy */
 
@@ -257,16 +225,6 @@ void fold_memcpy(expr *e, symtable *stab)
 
 	e->tree_type = type_ref_cached_VOID_PTR();
 }
-
-#ifdef BUILTIN_USE_LIBC
-static decl *decl_new_tref(char *sp, type_ref *ref)
-{
-	decl *d = decl_new();
-	d->ref = ref;
-	d->spel = sp;
-	return d;
-}
-#endif
 
 static void builtin_memcpy_single(void)
 {
@@ -318,14 +276,19 @@ void builtin_gen_memcpy(expr *e, symtable *stab)
 	out_call(3, e->tree_type, ctype);
 #else
 	/* TODO: backend rep movsb */
-	unsigned i = e->bits.iv.val;
+	unsigned i;
 	type_ref *tptr = type_ref_new_ptr(
 				type_ref_cached_MAX_FOR(e->bits.iv.val),
 				qual_none);
 	unsigned tptr_sz = type_ref_size(tptr, &e->where);
+	consty k;
 
-	lea_expr(e->lhs, stab); /* d */
-	lea_expr(e->rhs, stab); /* ds */
+	const_fold(e->funcargs[2], &k);
+
+	lea_expr(e->funcargs[0], stab); /* d */
+	lea_expr(e->funcargs[1], stab); /* ds */
+
+	ICE("Hi");
 
 	while(i > 0){
 		/* as many copies as we can */
@@ -367,19 +330,6 @@ expr *builtin_new_memcpy(expr *to, expr *from, size_t len)
 
 	return fcall;
 }
-
-#ifdef BUILTIN_LIBC_FUNCTIONS
-static expr *parse_memcpy(void)
-{
-	expr *fcall = parse_any_args();
-
-	ICE("TODO: builtin memcpy parsing");
-
-	expr_mutate_builtin_gen(fcall, memcpy);
-
-	return fcall;
-}
-#endif
 
 /* --- unreachable */
 
@@ -515,7 +465,8 @@ static void builtin_gen_frame_address(expr *e, symtable *stab)
 static expr *parse_frame_address(void)
 {
 	expr *fcall = parse_any_args();
-	expr_mutate_builtin_gen(fcall, frame_address);
+	expr_mutate_builtin(fcall, frame_address);
+	fcall->f_gen = builtin_gen_frame_address;
 	return fcall;
 }
 
@@ -618,14 +569,4 @@ static void const_strlen(expr *e, consty *k)
 			}
 		}
 	}
-}
-
-static expr *parse_strlen(void)
-{
-	expr *fcall = parse_any_args();
-
-	/* simply set the const vtable ent */
-	fcall->f_const_fold = const_strlen;
-
-	return fcall;
 }
