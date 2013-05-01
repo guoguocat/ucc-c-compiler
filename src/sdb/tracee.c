@@ -22,27 +22,53 @@ void tracee_traceme()
 		die("ptrace(TRACE_ME):");
 }
 
+static int tracee_arch_init(tracee *t, pid_t pid)
+{
+	t->ap = arch_attach(pid);
+	return t->ap ? 0 : 1;
+}
+
+static void tracee_arch_detach(tracee *t)
+{
+	arch_detach(&t->ap);
+}
+
 pid_t tracee_create(tracee *t)
 {
 	TRACEE_INIT(t);
 
-	return t->pid = fork();
+	pid_t pid = fork();
+
+	if(pid == -1)
+		return -1;
+
+	if(tracee_arch_init(t, pid)){
+		kill(pid, SIGKILL);
+		return -1;
+	}
+
+	return pid;
 }
 
 int tracee_attach(tracee *t, pid_t pid)
 {
 	TRACEE_INIT(t);
 
-	if(os_ptrace(SDB_ATTACH, t->pid = pid, 0, 0) < 0)
+	if(os_ptrace(SDB_ATTACH, pid, 0, 0) < 0)
 		return -1;
 	t->attached_to = 1;
+
+	if(tracee_arch_init(t, pid))
+		return -1;
+
 	return 0;
 }
 
 int tracee_detach(tracee *t)
 {
 	t->event = TRACEE_DETACHED;
-	return os_ptrace(SDB_DETACH, t->pid, 0, /*sig*/ 0);
+	tracee_arch_detach(t);
+	return os_ptrace(SDB_DETACH, TRACEE_PID(t), 0, /*sig*/ 0);
 }
 
 int tracee_leave(tracee *t) /*, int sig) */
@@ -51,6 +77,8 @@ int tracee_leave(tracee *t) /*, int sig) */
 		tracee_detach(t);
 
 	tracee_kill(t, /*sig*/ SIGKILL);
+
+	tracee_arch_detach(t);
 	return 0;
 }
 
@@ -72,13 +100,13 @@ static bkpt *tracee_find_breakpoint(tracee *t, addr_t loc)
 
 int tracee_get_reg(tracee *t, enum pseudo_reg r, reg_t *p)
 {
-	return arch_reg_read(t->pid,
+	return arch_reg_read(TRACEE_PID(t),
 			arch_pseudo_reg(r), p);
 }
 
 int tracee_set_reg(tracee *t, enum pseudo_reg r, const reg_t v)
 {
-	return arch_reg_write(t->pid,
+	return arch_reg_write(TRACEE_PID(t),
 			arch_pseudo_reg(r), v);
 }
 
@@ -103,7 +131,7 @@ void tracee_wait(tracee *t, reg_t *p_ip)
 {
 	int wstatus;
 retry:
-	if(waitpid(t->pid, &wstatus, 0) == -1){
+	if(waitpid(TRACEE_PID(t), &wstatus, 0) == -1){
 		if(errno == EINTR)
 			goto retry;
 		warn("waitpid():");
@@ -151,13 +179,13 @@ buh:
 
 static void tracee_ptrace(tracee *t, int req, void *addr, void *data)
 {
-	if(os_ptrace(req, t->pid, addr, data) < 0)
+	if(os_ptrace(req, TRACEE_PID(t), addr, data) < 0)
 		warn("ptrace():");
 }
 
 void tracee_kill(tracee *t, int sig)
 {
-	if(kill(t->pid, sig) == -1)
+	if(tracee_alive(t) && kill(TRACEE_PID(t), sig) == -1)
 		warn("kill():");
 }
 
@@ -168,6 +196,8 @@ void tracee_cont(tracee *t, int sig)
 
 int tracee_alive(tracee *t)
 {
+	if(!t->ap)
+		return 0;
 	switch(t->event){
 		case TRACEE_KILLED:
 		case TRACEE_EXITED:
@@ -237,7 +267,7 @@ void tracee_continue(tracee *t)
 
 int tracee_break(tracee *t, addr_t a)
 {
-	bkpt *b = bkpt_new(t->pid, a);
+	bkpt *b = bkpt_new(TRACEE_PID(t), a);
 	if(!b)
 		return -1;
 

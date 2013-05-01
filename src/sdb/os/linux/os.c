@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <errno.h>
@@ -18,6 +19,19 @@ int arch_reg_offset(const char *s)
 #include "regs.def"
 #undef REG
 	return -1;
+}
+
+struct arch_proc *arch_attach(pid_t pid)
+{
+	struct arch_proc *ap = calloc(1, sizeof *ap);
+	ap->pid = pid;
+	return ap;
+}
+
+void arch_detach(struct arch_proc **pap)
+{
+	free(*pap);
+	*pap = NULL;
 }
 
 int arch_pseudo_reg(enum pseudo_reg r)

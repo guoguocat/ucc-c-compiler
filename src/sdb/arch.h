@@ -7,6 +7,16 @@ typedef unsigned long reg_t;
 typedef unsigned long addr_t;
 typedef unsigned long word_t;
 
+/* "subclassed" by arch for maintaining open files, etc */
+struct arch_proc
+{
+	pid_t pid;
+};
+
+struct arch_proc *arch_attach(pid_t);
+void              arch_detach(struct arch_proc **);
+
+
 #define REG_FMT "0x%lx"
 
 enum pseudo_reg

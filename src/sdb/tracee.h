@@ -6,7 +6,9 @@
 
 typedef struct tracee
 {
-	pid_t pid;
+	struct arch_proc *ap;
+#define TRACEE_PID(t) ((t)->ap->pid)
+
 	enum
 	{
 		TRACEE_BREAK,

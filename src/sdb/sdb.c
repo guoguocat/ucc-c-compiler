@@ -42,9 +42,9 @@ pass_sig(int sig)
 	/* if we attached, we need to forward signals, otherwise it's a child in our pgrp */
 	if(current_child->attached_to
 	&& tracee_alive(current_child)
-	&& kill(current_child->pid, sig))
+	&& kill(TRACEE_PID(current_child), sig))
 	{
-		warn("kill(%d, %d):", current_child->pid, sig);
+		warn("kill(%d, %d):", TRACEE_PID(current_child), sig);
 	}
 }
 
@@ -70,7 +70,7 @@ run_debugger(tracee *child)
 	current_child = child;
 	sdb_signal(SIGINT, pass_sig);
 
-	printf("child pid %d\n", child->pid);
+	printf("child pid %d\n", TRACEE_PID(child));
 
 	for(;;){
 		reg_t ip;
