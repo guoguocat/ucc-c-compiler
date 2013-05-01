@@ -123,7 +123,7 @@ retry:
 		return;
 	}
 
-	reg_t ip;
+	reg_t ip = 0;
 	if(tracee_get_reg(t, ARCH_REG_IP, &ip)){
 		if(errno == ESRCH){
 			t->event = TRACEE_EXITED;
