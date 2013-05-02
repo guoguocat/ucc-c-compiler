@@ -39,8 +39,11 @@ pid_t tracee_create(tracee *t)
 
 	pid_t pid = fork();
 
-	if(pid == -1)
-		return -1;
+	switch(pid){
+		case -1:
+		case  0:
+			return pid;
+	}
 
 	if(tracee_arch_init(t, pid)){
 		kill(pid, SIGKILL);

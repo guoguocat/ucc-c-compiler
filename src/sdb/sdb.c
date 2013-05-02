@@ -193,7 +193,7 @@ usage:
 				return 1;
 
 			case -1:
-				die("fork():");
+				die("couldn't create child:");
 
 			default:
 				break;

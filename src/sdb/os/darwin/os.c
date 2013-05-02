@@ -59,7 +59,8 @@ struct arch_proc *arch_attach(pid_t pid)
 	kern_return_t err = task_for_pid(mach_task_self(), pid, &port);
 
 	if(err){
-		warn("task_for_pid() failed: %d - may not be signed", err);
+		warn("task_for_pid(%d, pid=%d, [port]) failed: %d - may not be signed",
+				mach_task_self(), pid, err);
 		return NULL;
 	}
 
