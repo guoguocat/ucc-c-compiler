@@ -8,6 +8,7 @@
 #include <limits.h>
 
 #include "util.h"
+#include "daemon.h"
 #include "../util/dynarray.h"
 #define ARGC(argv) dynarray_count((void **)argv)
 
@@ -228,7 +229,7 @@ c_x_wr(tracee *child, char **argv)
 				warn("read memory at 0x%lx: %s", addr, strerror(errno));
 				break;
 			}
-			printf("0x%lx: ", addr);
+			sdb_printf("0x%lx: ", addr);
 
 			/* we read a full word - trim */
 			switch(size){
@@ -239,7 +240,7 @@ c_x_wr(tracee *child, char **argv)
 			}
 
 			switch(ty){
-#define TYPE(ch, fmt, ty, cast) case ty: printf(fmt "\n", *(cast *)&val); break;
+#define TYPE(ch, fmt, ty, cast) case ty: sdb_printf(fmt "\n", *(cast *)&val); break;
 #include "examine_type.def"
 #undef TYPE
 			}
@@ -269,7 +270,7 @@ c_regs_read(tracee *t, char **argv)
 		if(arch_reg_read(t->ap, i, &v))
 			warn("read reg \"%s\":", *r);
 		else
-			printf("%s = 0x%lx\n", *r, v);
+			sdb_printf("%s = 0x%lx\n", *r, v);
 	}
 
 	return DISPATCH_REPROMPT;
@@ -312,7 +313,7 @@ static int c_reg_read(tracee *t, char **argv)
 		return DISPATCH_REPROMPT;
 	}
 
-	printf("0x%lx\n", v);
+	sdb_printf("0x%lx\n", v);
 
 	return DISPATCH_REPROMPT;
 }
@@ -443,9 +444,9 @@ static int
 c_help(tracee *child, char **argv)
 {
 	if(ARG_CHECK(!= 2)){
-		printf("available commands:\n");
+		sdb_printf("available commands:\n");
 		for(int i = 0; cmds[i].s; i++)
-			printf("  %s\n", cmds[i].s);
+			sdb_printf("  %s\n", cmds[i].s);
 	}else{
 		/* two args - "help cmd" */
 		cmd_dispatch(child, (char *[]){ argv[1], HELP_ARG, NULL });
@@ -479,11 +480,11 @@ cmd_dispatch(tracee *child, char **inp)
 	if(found){
 		// FIXME: remove alive
 		if(found->need_alive && !tracee_alive(child))
-			printf("child isn't running, can't \"%s\"\n", found->s);
+			sdb_printf("child isn't running, can't \"%s\"\n", found->s);
 		else
 			ret = found->f(child, inp);
 	}else{
-		printf("command \"%s\" not found\n", inp[0]);
+		sdb_printf("command \"%s\" not found\n", inp[0]);
 	}
 
 	return ret;

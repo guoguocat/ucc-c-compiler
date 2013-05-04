@@ -17,16 +17,17 @@ void ice(const char *f, int line, const char *fn, const char *fmt, ...)
 	va_end(l);
 	abort();
 }
+#include "daemon.h"
 
 static void vwarn(const char *fmt, va_list l)
 {
-	vfprintf(stderr, fmt, l);
+	sdb_vprintf(fmt, l);
 
 	size_t len = strlen(fmt);
 	if(len > 0 && fmt[len-1] == ':')
-		fprintf(stderr, " %s", strerror(errno));
+		sdb_printf(" %s", strerror(errno));
 
-	fputc('\n', stderr);
+	sdb_printf("\n");
 }
 
 void warn(const char *fmt, ...)

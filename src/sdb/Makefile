@@ -3,7 +3,7 @@ include config.mk
 
 DEP_FILE = Makefile.deps
 
-OBJ     = sdb.o util.o tracee.o prompt.o arch/arch.o cmds.o \
+OBJ     = sdb.o util.o tracee.o daemon.o prompt.o arch/arch.o cmds.o \
           breakpoint.o signal.o \
           arch/${ARCH}/arch.o os/${OS_NAME}/ptrace.o os/${OS_NAME}/os.o \
           ../util/dynarray.o ../util/alloc.o

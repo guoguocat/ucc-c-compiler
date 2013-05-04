@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "util.h"
+#include "daemon.h"
 
 #include "arch.h"
 #include "tracee.h"
@@ -70,7 +71,7 @@ run_debugger(tracee *child)
 	current_child = child;
 	sdb_signal(SIGINT, pass_sig);
 
-	printf("child pid %d\n", TRACEE_PID(child));
+	sdb_printf("child pid %d\n", TRACEE_PID(child));
 
 	for(;;){
 		reg_t ip;
@@ -78,15 +79,15 @@ run_debugger(tracee *child)
 
 		switch(child->event){
 			case TRACEE_EXITED:
-				printf("exited with code %d\n", child->evt.exit_code);
+				sdb_printf("exited with code %d\n", child->evt.exit_code);
 				break;
 
 			case TRACEE_DETACHED:
-				printf("detached\n");
+				sdb_printf("detached\n");
 				break;
 
 			case TRACEE_KILLED:
-				printf("killed with signal %d\n", child->evt.sig);
+				sdb_printf("killed with signal %d\n", child->evt.sig);
 				break;
 
 			case TRACEE_SIGNALED:
@@ -94,7 +95,7 @@ run_debugger(tracee *child)
 				handle_mask hops = sig_handle_mask(child->evt.sig);
 
 				if(hops & (HANDLE_PRINT | HANDLE_STOP))
-					printf("signaled with %s @ " REG_FMT "\n",
+					sdb_printf("signaled with %s @ " REG_FMT "\n",
 							sig_name(child->evt.sig), ip);
 
 				if(hops & HANDLE_HEREDITARY){
@@ -115,48 +116,31 @@ run_debugger(tracee *child)
 			}
 
 			case TRACEE_BREAK:
-				printf("stopped @ breakpoint " REG_FMT "\n",
+				sdb_printf("stopped @ breakpoint " REG_FMT "\n",
 						bkpt_addr(child->evt.bkpt));
 				break;
 		}
 
-prompt:
-		fputs("(sdb) ", stdout);
-
+reprompt:;
 		char **cmd;
 		if(!(cmd = prompt())){
 			if(errno == EINTR){
 				puts("interrupt");
-				goto prompt;
+				goto reprompt;
 			}
 			putchar('\n');
 			c_quit(child, (char *[]){"q", NULL});
 		}
 
 		if(!cmd_dispatch(child, cmd))
-			goto prompt;
+			goto reprompt;
 	}
-}
-
-static void
-setup_dir(char *dir)
-{
-	return; /* for now, we're command-line */
-	if(mkdir_p(dir))
-		die("mkdir %s:", dir);
-
-	if(chdir(dir))
-		die("chdir %s:", dir);
-
-	printf("success %s\n", dir);
-	exit(1);
-	// fifo
 }
 
 int
 main(int argc, char **argv)
 {
-	char *d = NULL;
+	char *dir = NULL;
 	unsigned i = 1;
 
 	if(argc < 2){
@@ -168,7 +152,7 @@ usage:
 	}
 
 	if(argc > 2 && !strcmp(argv[i], "-d")){
-		d = argv[++i];
+		dir = argv[++i];
 		i++;
 	}
 
@@ -176,9 +160,10 @@ usage:
 		goto usage;
 
 	char buf[16];
-	if(!d)
-		snprintf(buf, sizeof buf, "sdb.%d", getpid());
-	setup_dir(d ? d : buf);
+	if(!dir)
+		snprintf(buf, sizeof buf, "sdb.%d", getpid()), dir = buf;
+	printf("%s\n", dir);
+	daemon_fork();
 
 	tracee child;
 	if(!strcmp(argv[i], "-p")){
@@ -200,7 +185,8 @@ usage:
 		}
 	}
 
-	run_debugger(&child);
+	daemon_init(dir); /* forks away from terminal */
 
+	run_debugger(&child);
 	sdb_exit(&child);
 }
