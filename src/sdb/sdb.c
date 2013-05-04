@@ -162,7 +162,10 @@ usage:
 	char buf[16];
 	if(!dir)
 		snprintf(buf, sizeof buf, "sdb.%d", getpid()), dir = buf;
+	daemon_init_dir(dir);
 	printf("%s\n", dir);
+	fflush(stdout);
+
 	daemon_fork();
 
 	tracee child;
@@ -185,7 +188,7 @@ usage:
 		}
 	}
 
-	daemon_init(dir); /* forks away from terminal */
+	daemon_create_io(dir);
 
 	run_debugger(&child);
 	sdb_exit(&child);

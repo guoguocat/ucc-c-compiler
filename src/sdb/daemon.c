@@ -18,22 +18,29 @@ void daemon_fork()
 			case -1:
 				die("fork():");
 			case 0:
-				/* i want to */ break; /* free */
+				close(0);
+				close(1);
+				close(2);
+				break;
+
 			default:
 				exit(0); /* parent */
 		}
 	}
 }
 
-void daemon_init(char *dir)
+void daemon_init_dir(char *dir)
 {
 	if(mkdir_p(dir))
 		die("mkdir %s:", dir);
+}
 
+void daemon_create_io(char *dir)
+{
 	if(chdir(dir))
 		die("chdir %s:", dir);
 
-	freopen("log", "w", stdout);
+	freopen("out", "w", stdout);
 
 	if(mkfifo(FIFO, 0600) == -1 && errno != EEXIST)
 		die("mkfifo(\"%s\"):", FIFO);

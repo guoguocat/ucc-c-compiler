@@ -1,0 +1,32 @@
+#!/bin/sh
+
+empty_file(){
+	cat < /dev/null > "$1"
+}
+
+if [ $# -eq 0 ]
+then
+	echo "Usage: $0 args-for-sdb..." >&2
+	exit 1
+fi
+
+our="$(readlink -f "$0" | xargs dirname)"
+dir="$("$our/sdb" $@)"
+
+cd "$dir" || exit $?
+
+pid="$(echo "$dir" | sed 's/^sdb.//')"
+
+empty_file log
+
+while :
+do
+	cat out | tee -a log
+	empty_file out
+
+	echo -n "(sdb) "
+	read line || break
+	echo "$line" > cmd
+done
+
+kill $pid
