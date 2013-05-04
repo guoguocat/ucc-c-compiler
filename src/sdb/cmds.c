@@ -172,7 +172,7 @@ c_examine(tracee *child, char **argv)
 
 	for(; count > 0; count--){
 		word_t val;
-		if(arch_mem_read(TRACEE_PID(child), addr, &val)){
+		if(arch_mem_read(child->ap, addr, &val)){
 			warn("read memory at 0x%x: %s", addr, strerror(errno));
 			break;
 		}
@@ -212,7 +212,7 @@ c_regs_read(tracee *t, char **argv)
 		assert(i != -1);
 
 		reg_t v;
-		if(arch_reg_read(TRACEE_PID(t), i, &v))
+		if(arch_reg_read(t->ap, i, &v))
 			warn("read reg \"%s\":", *r);
 		else
 			printf("%s = 0x%lx\n", *r, v);
@@ -253,7 +253,7 @@ static int c_reg_read(tracee *t, char **argv)
 	}
 
 	reg_t v;
-	if(arch_reg_read(TRACEE_PID(t), i, &v)){
+	if(arch_reg_read(t->ap, i, &v)){
 		warn("reg read:");
 		return DISPATCH_REPROMPT;
 	}
@@ -282,7 +282,7 @@ static int c_reg_write(tracee *t, char **argv)
 		return DISPATCH_REPROMPT;
 	}
 
-	if(arch_reg_write(TRACEE_PID(t), i, v))
+	if(arch_reg_write(t->ap, i, v))
 		warn("reg write:");
 
 	return DISPATCH_REPROMPT;

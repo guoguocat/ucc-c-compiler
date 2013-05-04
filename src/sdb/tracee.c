@@ -103,13 +103,13 @@ static bkpt *tracee_find_breakpoint(tracee *t, addr_t loc)
 
 int tracee_get_reg(tracee *t, enum pseudo_reg r, reg_t *p)
 {
-	return arch_reg_read(TRACEE_PID(t),
+	return arch_reg_read(t->ap,
 			arch_pseudo_reg(r), p);
 }
 
 int tracee_set_reg(tracee *t, enum pseudo_reg r, const reg_t v)
 {
-	return arch_reg_write(TRACEE_PID(t),
+	return arch_reg_write(t->ap,
 			arch_pseudo_reg(r), v);
 }
 
@@ -270,7 +270,7 @@ void tracee_continue(tracee *t)
 
 int tracee_break(tracee *t, addr_t a)
 {
-	bkpt *b = bkpt_new(TRACEE_PID(t), a);
+	bkpt *b = bkpt_new(t->ap, a);
 	if(!b)
 		return -1;
 

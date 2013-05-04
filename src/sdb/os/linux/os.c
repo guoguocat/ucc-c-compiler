@@ -34,34 +34,34 @@ void arch_detach(struct arch_proc **pap)
 	*pap = NULL;
 }
 
-int arch_mem_read(pid_t pid, addr_t addr, unsigned long *p)
+int arch_mem_read(const struct arch_proc *ap, addr_t addr, word_t *p)
 {
 	errno = 0;
-	*p = ptrace(PTRACE_PEEKTEXT, pid, addr, 0);
+	*p = ptrace(PTRACE_PEEKTEXT, ap->pid, addr, 0);
 	if(errno)
 		return -1;
 
 	return 0;
 }
 
-int arch_mem_write(pid_t pid, addr_t addr, unsigned long v)
+int arch_mem_write(const struct arch_proc *ap, addr_t addr, word_t v)
 {
-	return ptrace(PTRACE_POKETEXT, pid, addr, v) != 0;
+	return ptrace(PTRACE_POKETEXT, ap->pid, addr, v) != 0;
 }
 
-int arch_reg_read(pid_t pid, int i, reg_t *p)
+int arch_reg_read(const struct arch_proc *ap, int i, reg_t *p)
 {
 	assert(i >= 0);
 
 	errno = 0;
-	*p = ptrace(PTRACE_PEEKUSER, pid, i * sizeof(reg_t), 0);
+	*p = ptrace(PTRACE_PEEKUSER, ap->pid, i * sizeof(reg_t), 0);
 
 	return errno ? -1 : 0;
 }
 
-int arch_reg_write(pid_t pid, int i, const reg_t v)
+int arch_reg_write(const struct arch_proc *ap, int i, const reg_t v)
 {
 	assert(i >= 0);
 
-	return ptrace(PTRACE_POKEUSER, pid, i * sizeof(reg_t), v) < 0 ? -1 : 0;
+	return ptrace(PTRACE_POKEUSER, ap->pid, i * sizeof(reg_t), v) < 0 ? -1 : 0;
 }

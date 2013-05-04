@@ -15,25 +15,25 @@ int arch_reg_offset(const char *s)
 	return -1;
 }
 
-int arch_mem_read(pid_t pid, addr_t addr, word_t *p)
+int arch_mem_read(const struct arch_proc *ap, addr_t addr, word_t *p)
 {
 	errno = ENOSYS;
 	return -1;
 }
 
-int arch_mem_write(pid_t pid, addr_t addr, word_t l)
+int arch_mem_write(const struct arch_proc *ap, addr_t addr, word_t v)
 {
 	errno = ENOSYS;
 	return -1;
 }
 
-int arch_reg_read(pid_t pid, int off, reg_t *p)
+int arch_reg_write(const struct arch_proc *ap, int off, const reg_t v)
 {
 	errno = ENOSYS;
 	return -1;
 }
 
-int arch_reg_write(pid_t pid, int off, const reg_t v)
+int arch_reg_read(const struct arch_proc *ap, int off, reg_t *p)
 {
 	// TODO
 	errno = ENOSYS;

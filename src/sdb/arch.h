@@ -31,11 +31,11 @@ int arch_reg_offset(const char *);
 
 int arch_pseudo_reg(enum pseudo_reg);
 
-int arch_reg_read( pid_t pid, int off, reg_t *);
-int arch_reg_write(pid_t pid, int off, const reg_t);
+int arch_reg_read( const struct arch_proc *, int off, reg_t *);
+int arch_reg_write(const struct arch_proc *, int off, const reg_t);
 
-int arch_mem_read( pid_t, addr_t, word_t *);
-int arch_mem_write(pid_t, addr_t, word_t);
+int arch_mem_read( const struct arch_proc *, addr_t, word_t *);
+int arch_mem_write(const struct arch_proc *, addr_t, word_t);
 
 unsigned long arch_trap_inst(void);
 unsigned long arch_trap_mask(void);

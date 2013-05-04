@@ -74,28 +74,28 @@ void arch_detach(struct arch_proc **pap)
 	*pap = NULL;
 }
 
-int arch_mem_read(pid_t pid, addr_t addr, word_t *p)
+int arch_mem_read(const struct arch_proc *ap, addr_t addr, word_t *p)
 {
 	/* TODO: vm_read() */
 	errno = ENOSYS;
 	return -1;
 }
 
-int arch_mem_write(pid_t pid, addr_t addr, word_t l)
+int arch_mem_write(const struct arch_proc *ap, addr_t addr, word_t l)
 {
 	/* TODO: vm_write() */
 	errno = ENOSYS;
 	return -1;
 }
 
-int arch_reg_read(pid_t pid, int off, reg_t *p)
+int arch_reg_read(const struct arch_proc *ap, int off, reg_t *p)
 {
 	/* TODO: task/thread get state */
 	errno = ENOSYS;
 	return -1;
 }
 
-int arch_reg_write(pid_t pid, int off, const reg_t v)
+int arch_reg_write(const struct arch_proc *ap, int off, const reg_t v)
 {
 	/* TODO: task/thread set state */
 	errno = ENOSYS;
