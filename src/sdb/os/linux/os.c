@@ -34,15 +34,6 @@ void arch_detach(struct arch_proc **pap)
 	*pap = NULL;
 }
 
-int arch_pseudo_reg(enum pseudo_reg r)
-{
-	switch(r){
-		case ARCH_REG_IP: return RIP;
-		case ARCH_REG_SP: return RSP;
-	}
-	return -1;
-}
-
 int arch_mem_read(pid_t pid, addr_t addr, unsigned long *p)
 {
 	errno = 0;

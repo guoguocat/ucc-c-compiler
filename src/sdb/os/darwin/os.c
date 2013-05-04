@@ -47,12 +47,6 @@ int arch_reg_offset(const char *s)
 	return -1;
 }
 
-int arch_pseudo_reg(enum pseudo_reg r)
-{
-	/* TODO */
-	return -1;
-}
-
 struct arch_proc *arch_attach(pid_t pid)
 {
 	task_t port;

@@ -15,15 +15,6 @@ int arch_reg_offset(const char *s)
 	return -1;
 }
 
-int arch_pseudo_reg(enum pseudo_reg r)
-{
-	switch(r){
-		case ARCH_REG_IP: return 0; //RIP;
-		case ARCH_REG_SP: return 1; //RSP;
-	}
-	return -1;
-}
-
 int arch_mem_read(pid_t pid, addr_t addr, word_t *p)
 {
 	errno = ENOSYS;
