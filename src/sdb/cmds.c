@@ -18,7 +18,8 @@
 
 #define strcmp_lim(a, k) strncmp(a, k, strlen(a))
 
-#define ARG_CHECK(exp) (ARGC(argv) exp) || (argv[1] && !strcmp(argv[1], HELP_ARG))
+#define ARG_HELP() (argv[1] && !strcmp(argv[1], HELP_ARG))
+#define ARG_CHECK(exp) (ARGC(argv) exp) || ARG_HELP()
 #define NO_ARGS()             \
 	if(ARG_CHECK(!= 1)){        \
 		warn("Usage: %s", *argv); \
@@ -81,6 +82,22 @@ c_break(tracee *child, char **argv)
 	return DISPATCH_REPROMPT;
 }
 
+static int
+parse_num(unsigned long *to, const char *s, const char *cnam)
+{
+	char *ep;
+	errno = 0;
+	*to = strtol(s, &ep, 0 /* auto base */);
+	if(errno){
+		warn("%s: invalid number '%s' (%s)", cnam, s, strerror(errno));
+		return 0;
+	}else if(*ep){
+		warn("%s: characters after number ('%s')", cnam, ep);
+		return 0;
+	}
+	return 1;
+}
+
 enum examine_type
 {
 #define TYPE(ch, fmt, nam, cast) nam,
@@ -95,7 +112,8 @@ examine_parse_fmt(char *fmt,
 {
 	/* defaults */
 	*pcount = 1, *psize = sizeof(int);
-	*p_ty = x_hex;
+	if(p_ty)
+		*p_ty = x_hex;
 
 	if(!fmt)
 		return 1;
@@ -111,7 +129,7 @@ examine_parse_fmt(char *fmt,
 	}
 
 	/* type */
-	switch(*end){
+	switch(p_ty ? *end : 0){
 		default:
 			break; /* no type given */
 		case '\0': goto done;
@@ -143,62 +161,95 @@ done:
 }
 
 static int
-c_examine(tracee *child, char **argv)
+c_x_wr(tracee *child, char **argv)
 {
+	const int is_wr = **argv == 'w';
+
 	char *fmt = strchr(argv[0], '/');
 	if(fmt)
 		*fmt++ = '\0';
 
-	if(ARG_CHECK(!= 2)){
-		warn("Usage: %s[/fmt] [addr]", *argv);
+	if(ARGC(argv) != (is_wr ? 3 : 2) || ARG_HELP()){
+		warn("Usage: %s[/fmt] [addr]%s", *argv, is_wr ? " [value]" : "");
 		warn("  fmt = <count><type><size>");
 		warn("  size: Byte, Half, Word, Giant");
-		warn("  type: Octal, heX, Decimal, Unsigned, t(binary)");
-		warn("        Float, Address, Instruction, Char, String");
+		if(!is_wr){
+			warn("  type: Octal, heX, Decimal, Unsigned");
+			warn("        Float, Address, Char");
+		}
 		return DISPATCH_REPROMPT;
 	}
 
-	errno = 0;
-	addr_t addr = strtol(argv[1], NULL, 0 /* auto base */);
-	if(errno){
-		warn("%s: invalid number '%s' (%s)", argv[1], strerror(errno));
+	addr_t addr;
+	if(!parse_num(&addr, argv[1], *argv))
 		return DISPATCH_REPROMPT;
-	}
+
+	word_t val;
+	if(is_wr && !parse_num(&val, argv[2], *argv))
+		return DISPATCH_REPROMPT;
 
 	unsigned count, size;
 	enum examine_type ty;
-	if(!examine_parse_fmt(fmt, &count, &size, &ty))
+	if(!examine_parse_fmt(fmt, &count, &size, is_wr ? NULL : &ty))
 		return DISPATCH_REPROMPT;
 
 	for(; count > 0; count--){
-		word_t val;
-		if(arch_mem_read(child->ap, addr, &val)){
-			warn("read memory at 0x%x: %s", addr, strerror(errno));
-			break;
-		}
-		printf("0x%lx: ", addr);
+		if(is_wr){
+			union
+			{
+				word_t full;
+				unsigned int i;
+				unsigned short s;
+				unsigned char c;
+			} mix;
 
-		/* we read a full word - trim */
-		switch(size){
-			case 1: val &= UCHAR_MAX; break;
-			case 2: val &= USHRT_MAX; break;
-			case 4: val &= UINT_MAX ; break;
-			case 8: val &= ULONG_MAX; break;
-		}
+			if(size != 8){
+				if(arch_mem_read(child->ap, addr, &mix.full)){
+					warn("read memory at 0x%lx: %s", addr, strerror(errno));
+					break;
+				}
+				switch(size){
+#define SIZE(sz, x) case sz: mix.x = val; break;
+					SIZE(1, c);
+					SIZE(2, s);
+					SIZE(4, i);
+#undef SIZE
+				}
+			}else{
+				mix.full = val;
+			}
 
-		switch(ty){
+			if(arch_mem_write(child->ap, addr, mix.full)){
+				warn("write memory at 0x():");
+				break;
+			}
+		}else{
+			if(arch_mem_read(child->ap, addr, &val)){
+				warn("read memory at 0x%lx: %s", addr, strerror(errno));
+				break;
+			}
+			printf("0x%lx: ", addr);
+
+			/* we read a full word - trim */
+			switch(size){
+				case 1: val &= UCHAR_MAX; break;
+				case 2: val &= USHRT_MAX; break;
+				case 4: val &= UINT_MAX ; break;
+				case 8: val &= ULONG_MAX; break;
+			}
+
+			switch(ty){
 #define TYPE(ch, fmt, ty, cast) case ty: printf(fmt "\n", *(cast *)&val); break;
 #include "examine_type.def"
 #undef TYPE
+			}
 		}
+
 		addr += size;
 	}
 
 	return DISPATCH_REPROMPT;
 }
-
-static int
-c_help(tracee *, char **argv);
 
 static int
 c_regs_read(tracee *t, char **argv)
@@ -359,6 +410,9 @@ out:
 	return DISPATCH_REPROMPT;
 }
 
+static int
+c_help(tracee *, char **argv);
+
 static const struct dispatch
 {
 	const char *s;
@@ -368,7 +422,7 @@ static const struct dispatch
 	{ "quit",   c_quit,           0 },
 	{ "help",   c_help,           0 },
 	{ "break",  c_break,          1 }, /* TODO: lazy */
-	{ "x",      c_examine,        1 },
+	{ "x",      c_x_wr,           1 },
 	{ "rall",   c_regs_read,      1 },
 	{ "rr"  ,   c_reg_read,       1 },
 	{ "rw"  ,   c_reg_write,      1 },
@@ -377,6 +431,7 @@ static const struct dispatch
 	{ "step",   c_step,           1 },
 	{ "signal", c_sig,            1 }, /* TODO: lazy */
 	{ "detach", c_detach,         1 },
+	{ "wr",     c_x_wr,           1 },
 
 	{ NULL }
 };
