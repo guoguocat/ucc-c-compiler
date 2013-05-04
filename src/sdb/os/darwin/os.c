@@ -168,35 +168,51 @@ bad:
 	return darwin_set_errno(kr);
 }
 
+static int arch_reg_get_state(
+		const struct arch_proc_darwin *dap,
+		thread_act_port_array_t *thrd_list,
+		x86_thread_state64_t *state)
+{
+	mach_msg_type_number_t thrd_count;
+
+	kern_return_t kr = task_threads(dap->port, thrd_list, &thrd_count);
+	if(kr != KERN_SUCCESS)
+		return -1;
+
+	return thread_get_state((*thrd_list)[0], x86_THREAD_STATE64,
+			(thread_state_t)state, &(int){ x86_THREAD_STATE64_COUNT });
+}
+
 int arch_reg_read(const struct arch_proc *ap, int off, reg_t *p)
 {
 	struct arch_proc_darwin *dap = (struct arch_proc_darwin *)ap;
 
-	thread_act_port_array_t thrd_list;
-	mach_msg_type_number_t thrd_count;
-
-	kern_return_t kr = task_threads(dap->port, &thrd_list, &thrd_count);
-	if(kr != KERN_SUCCESS)
-		goto darwin_err;
-
-	mach_msg_type_number_t stateCount = x86_THREAD_STATE64_COUNT;
 	x86_thread_state64_t state;
+	thread_act_port_array_t thrd_list;
+	kern_return_t kr = arch_reg_get_state(dap, &thrd_list, &state);
 
-	kr = thread_get_state(thrd_list[0], x86_THREAD_STATE64,
-			(thread_state_t)&state, &stateCount);
+	if(kr == KERN_SUCCESS) /* read away */
+		*p = *(DARWIN_REG_TYPE *)((char *)&state + off);
 
-	if(kr != KERN_SUCCESS)
-		goto darwin_err;
-
-	*p = *(DARWIN_REG_TYPE *)((char *)&state + off);
-
-darwin_err:
 	return darwin_set_errno(kr);
 }
 
 int arch_reg_write(const struct arch_proc *ap, int off, const reg_t v)
 {
-	/* TODO: task/thread set state */
-	errno = ENOSYS;
-	return -1;
+	struct arch_proc_darwin *dap = (struct arch_proc_darwin *)ap;
+
+	x86_thread_state64_t state;
+	thread_act_port_array_t thrd_list;
+
+	kern_return_t kr = arch_reg_get_state(dap, &thrd_list, &state);
+	if(kr == KERN_SUCCESS)
+		return darwin_set_errno(kr);
+
+	*(DARWIN_REG_TYPE *)((char *)&state + off) = v;
+
+	kr = thread_set_state(
+			thrd_list[0], x86_THREAD_STATE64,
+			(thread_state_t)&state, x86_THREAD_STATE64_COUNT);
+
+	return darwin_set_errno(kr);
 }
