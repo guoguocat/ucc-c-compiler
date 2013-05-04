@@ -70,8 +70,9 @@ int tracee_attach(tracee *t, pid_t pid)
 int tracee_detach(tracee *t)
 {
 	t->event = TRACEE_DETACHED;
+	int r = os_ptrace(SDB_DETACH, TRACEE_PID(t), 0, /*sig*/ 0);
 	tracee_arch_detach(t);
-	return os_ptrace(SDB_DETACH, TRACEE_PID(t), 0, /*sig*/ 0);
+	return r;
 }
 
 int tracee_leave(tracee *t) /*, int sig) */
