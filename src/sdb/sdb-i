@@ -4,6 +4,14 @@ empty_file(){
 	cat < /dev/null > "$1"
 }
 
+clrtoeol(){
+	printf '[2K'
+}
+
+msleep(){
+	sleep `(echo scale=5; echo $1 / 1000) | bc`
+}
+
 if [ $# -eq 0 ]
 then
 	echo "Usage: $0 args-for-sdb..." >&2
@@ -15,18 +23,24 @@ dir="$("$our/sdb" $@)"
 
 cd "$dir" || exit $?
 
-pid="$(echo "$dir" | sed 's/^sdb.//')"
-
 empty_file log
-
 while :
 do
-	cat out | tee -a log
-	empty_file out
+	while ! [ -e ready ]
+	do
+		printf 'waiting for sdb...\r'
+		sleep 1
+		clrtoeol
+	done
+	rm ready
+
+	cat last | tee -a log
+	empty_file last
 
 	echo -n "(sdb) "
 	read line || break
 	echo "$line" > cmd
+	msleep 100
 done
 
-kill $pid
+kill "`cat pid`"

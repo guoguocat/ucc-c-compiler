@@ -161,7 +161,7 @@ usage:
 
 	char buf[16];
 	if(!dir)
-		snprintf(buf, sizeof buf, "sdb.%d", getpid()), dir = buf;
+		snprintf(buf, sizeof buf, "sdb.session"), dir = buf;
 	daemon_init_dir(dir);
 	printf("%s\n", dir);
 	fflush(stdout);

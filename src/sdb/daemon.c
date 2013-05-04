@@ -1,15 +1,25 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-
 #include <errno.h>
 
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include "daemon.h"
 #include "util.h"
+
+static void daemon_write_pid(void)
+{
+	FILE *f = fopen("pid", "w");
+	if(!f)
+		die("open(pid):");
+
+	fprintf(f, "%d\n", getpid());
+	fclose(f);
+}
 
 void daemon_fork()
 {
@@ -40,10 +50,21 @@ void daemon_create_io(char *dir)
 	if(chdir(dir))
 		die("chdir %s:", dir);
 
-	freopen("out", "w", stdout);
+	freopen("last", "w", stdout);
 
+	daemon_create_cmd_fifo();
+	daemon_write_pid();
+}
+
+void daemon_create_cmd_fifo()
+{
 	if(mkfifo(FIFO, 0600) == -1 && errno != EEXIST)
 		die("mkfifo(\"%s\"):", FIFO);
+}
+
+void daemon_ready(void)
+{
+	creat("ready", 0600);
 }
 
 void sdb_vprintf(const char *fmt, va_list l)

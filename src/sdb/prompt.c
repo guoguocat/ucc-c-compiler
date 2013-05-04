@@ -38,9 +38,16 @@ retry:
 	fflush(stdout);
 
 	if(prompt_fd == -1){
+		daemon_ready();
+
 		prompt_fd = open(FIFO, O_RDONLY);
-		if(prompt_fd == -1)
+		if(prompt_fd == -1){
+			if(errno == ENOENT){
+				daemon_create_cmd_fifo();
+				goto retry;
+			}
 			die("open(\"%s\"):", FIFO);
+		}
 	}
 
 	errno = 0;
