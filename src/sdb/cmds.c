@@ -260,7 +260,10 @@ c_regs_read(tracee *t, char **argv)
 	for(r = arch_reg_names(); *r; r++){
 		int i = arch_reg_offset(*r);
 
-		assert(i != -1);
+		if(i == -1){
+			warn("no such register \"%s\":", *r);
+			continue;
+		}
 
 		reg_t v;
 		if(arch_reg_read(t->ap, i, &v))

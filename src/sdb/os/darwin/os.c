@@ -42,9 +42,25 @@ struct arch_proc_darwin
 	task_t port;
 };
 
+typedef uint64_t DARWIN_REG_TYPE;
+
 int arch_reg_offset(const char *s)
 {
-	/* TODO */
+	static const char *nams[] = {
+		/* ordered as in x86_thread_state64_t */
+		"rax",  "rbx",     "rcx",  "rdx",
+		"rdi",  "rsi",     "rbp",  "rsp",
+		"r8",   "r9",      "r10",  "r11",
+		"r12",  "r13",     "r14",  "r15",
+		"rip",  "rflags",
+		"cs",   "fs",      "gs",
+		NULL
+	};
+
+	for(int i = 0; nams[i]; i++)
+		if(!strcasecmp(nams[i], s))
+			return i * sizeof(DARWIN_REG_TYPE);
+
 	return -1;
 }
 
@@ -154,9 +170,28 @@ bad:
 
 int arch_reg_read(const struct arch_proc *ap, int off, reg_t *p)
 {
-	/* TODO: task/thread get state */
-	errno = ENOSYS;
-	return -1;
+	struct arch_proc_darwin *dap = (struct arch_proc_darwin *)ap;
+
+	thread_act_port_array_t thrd_list;
+	mach_msg_type_number_t thrd_count;
+
+	kern_return_t kr = task_threads(dap->port, &thrd_list, &thrd_count);
+	if(kr != KERN_SUCCESS)
+		goto darwin_err;
+
+	mach_msg_type_number_t stateCount = x86_THREAD_STATE64_COUNT;
+	x86_thread_state64_t state;
+
+	kr = thread_get_state(thrd_list[0], x86_THREAD_STATE64,
+			(thread_state_t)&state, &stateCount);
+
+	if(kr != KERN_SUCCESS)
+		goto darwin_err;
+
+	*p = *(DARWIN_REG_TYPE *)((char *)&state + off);
+
+darwin_err:
+	return darwin_set_errno(kr);
 }
 
 int arch_reg_write(const struct arch_proc *ap, int off, const reg_t v)
