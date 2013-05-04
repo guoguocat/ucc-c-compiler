@@ -202,16 +202,13 @@ int tracee_alive(tracee *t)
 {
 	if(!t->ap)
 		return 0;
+
 	switch(t->event){
-		case TRACEE_KILLED:
-		case TRACEE_EXITED:
-		case TRACEE_DETACHED:
-			return 0;
-		case TRACEE_BREAK:
-		case TRACEE_SIGNALED:
-			break;
+#define STATE(nam, alive) case nam: return alive;
+#include "tracee_state.def"
+#undef STATE
 	}
-	return 1;
+	return 0;
 }
 
 #define SIG_ARG_NONE 0

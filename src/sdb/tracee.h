@@ -11,11 +11,9 @@ typedef struct tracee
 
 	enum
 	{
-		TRACEE_BREAK,
-		TRACEE_SIGNALED,
-		TRACEE_EXITED,
-		TRACEE_KILLED,
-		TRACEE_DETACHED,
+#define STATE(nam, alive) nam,
+#include "tracee_state.def"
+#undef STATE
 	} event;
 
 	union
