@@ -23,8 +23,14 @@ if   compiler_is   gcc; then WARN_FLAGS='-Wno-override-init'
 elif compiler_is clang; then WARN_FLAGS='-Wno-initializer-overrides'
 fi
 
+if [ "$OS" = darwin ]
+then CODESIGN=codesign
+else CODESIGN=:
+fi
+
 cat > config.mk <<!
 OS_NAME = $OS
 ARCH    = $ARCH
 WARN_FLAGS = $WARN_FLAGS
+CODESIGN   = $CODESIGN
 !

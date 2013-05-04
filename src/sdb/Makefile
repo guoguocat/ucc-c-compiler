@@ -19,6 +19,7 @@ CPPFLAGS += -D_XOPEN_SOURCE -Iarch/${ARCH}
 
 sdb: ${OBJ}
 	${CC} ${LDFLAGS} -o $@ ${OBJ}
+	${CODESIGN} -s sdb $@
 
 .c.o:
 	${CC} ${CPPFLAGS} ${CFLAGS2} -c -o $@ $<
