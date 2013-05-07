@@ -180,7 +180,7 @@ static int arch_reg_get_state(
 		return -1;
 
 	return thread_get_state((*thrd_list)[0], x86_THREAD_STATE64,
-			(thread_state_t)state, &(int){ x86_THREAD_STATE64_COUNT });
+			(thread_state_t)state, &(mach_msg_type_number_t){ x86_THREAD_STATE64_COUNT });
 }
 
 int arch_reg_read(const struct arch_proc *ap, int off, reg_t *p)
