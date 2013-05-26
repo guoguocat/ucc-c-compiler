@@ -44,8 +44,9 @@ void fold_expr_struct(expr *e, symtable *stab)
 
 		if(!(sue = type_ref_is_s_or_u(r))){
 err:
-			DIE_AT(&e->lhs->where, "'%s' is not a %sstruct or union (member %s)",
+			DIE_AT(&e->lhs->where, "'%s' (%s-expr) is not a %sstruct or union (member %s)",
 					type_ref_to_str(e->lhs->tree_type),
+					e->lhs->f_str(),
 					ptr_expect ? "pointer to " : "",
 					spel);
 		}
@@ -62,7 +63,7 @@ err:
 	/* found the struct, find the member */
 	{
 		decl *d_mem = struct_union_member_find(sue, spel,
-				&e->bits.struct_mem.extra_off);
+				&e->bits.struct_mem.extra_off, NULL);
 
 		if(!d_mem)
 			DIE_AT(&e->where, "%s %s has no member named \"%s\"",
@@ -83,7 +84,7 @@ err:
 	if(!ptr_expect){
 		expr *cast, *addr;
 
-		cast = expr_new_cast(type_ref_new_VOID_PTR(), 1);
+		cast = expr_new_cast(type_ref_cached_VOID_PTR(), 1);
 		cast->expr = addr = expr_new_addr(e->lhs);
 
 		e->lhs = cast;
@@ -100,35 +101,32 @@ err:
 	}
 }
 
-void gen_expr_struct_lea(expr *e, symtable *stab)
+void gen_expr_struct_lea(expr *e)
 {
 	ASSERT_NOT_DOT();
 
-	gen_expr(e->lhs, stab);
+	gen_expr(e->lhs);
 
-	out_change_type(type_ref_new_VOID_PTR()); /* cast for void* arithmetic */
-	out_push_i(type_ref_new_INTPTR_T(), struct_offset(e)); /* integral offset */
+	out_change_type(type_ref_cached_VOID_PTR()); /* cast for void* arithmetic */
+	out_push_i(type_ref_cached_INTPTR_T(), struct_offset(e)); /* integral offset */
 	out_op(op_plus);
 
 	out_change_type(type_ref_ptr_depth_inc(e->rhs->tree_type));
 }
 
-void gen_expr_struct(expr *e, symtable *stab)
+void gen_expr_struct(expr *e)
 {
-	(void)stab;
-
 	ASSERT_NOT_DOT();
 
-	gen_expr_struct_lea(e, stab);
+	gen_expr_struct_lea(e);
 
 	out_deref();
 
 	out_comment("val from struct/union");
 }
 
-void gen_expr_str_struct(expr *e, symtable *stab)
+void gen_expr_str_struct(expr *e)
 {
-	(void)stab;
 	idt_printf("struct/union%s%s\n",
 			e->expr_is_st_dot ? "." : "->",
 			e->bits.struct_mem.d->spel);
@@ -154,11 +152,12 @@ void fold_const_expr_struct(expr *e, consty *k)
 			break;
 
 		case CONST_ADDR:
-			k->type = CONST_NEED_ADDR; /* not constant unless addressed e.g. &a->b */
+			/* not constant unless addressed e.g. &a->b (unless array/func) */
+			k->type = CONST_ADDR_OR_NEED(e->bits.struct_mem.d);
 			/* don't touch k->bits.addr info */
 
 			/* obviously we offset this */
-			k->offset = struct_offset(e);
+			k->offset += struct_offset(e);
 			break;
 
 		case CONST_VAL:
@@ -189,5 +188,8 @@ expr *expr_new_struct(expr *sub, int dot, expr *ident)
 	return e;
 }
 
-void gen_expr_style_struct(expr *e, symtable *stab)
-{ (void)e; (void)stab; /* TODO */ }
+void gen_expr_style_struct(expr *e)
+{
+	gen_expr(e->lhs);
+	stylef("->%s", e->bits.struct_mem.d->spel);
+}

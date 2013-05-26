@@ -5,8 +5,6 @@
 #include <stdarg.h>
 #include <time.h>
 
-#include "macro.h"
-#include "preproc.h"
 #include "../util/util.h"
 #include "../util/dynarray.h"
 #include "../util/alloc.h"
@@ -14,6 +12,11 @@
 #include "../util/printu.h"
 
 const struct printu printu_extras[] = {{ NULL, 0 }};
+
+#include "main.h"
+#include "macro.h"
+#include "preproc.h"
+#include "include.h"
 
 static const struct
 {
@@ -28,8 +31,6 @@ static const struct
 	TYPE(SIZE, unsigned long),
 	TYPE(PTRDIFF, unsigned long),
 	TYPE(WINT, unsigned),
-
-	{ "__GOT_SHORT_LONG", "1"  },
 
 	/* non-standard */
 	{ "__BLOCKS__",     "1"  },
@@ -52,7 +53,7 @@ int show_current_line = 1;
 
 char cpp_time[16], cpp_date[16];
 
-char **dirnames = NULL;
+char **cd_stack = NULL;
 
 int option_debug     = 0;
 int option_line_info = 1;
@@ -61,19 +62,15 @@ int option_line_info = 1;
 void dirname_push(char *d)
 {
 	/*fprintf(stderr, "dirname_push(%s = %p)\n", d, d);*/
-	dynarray_add((void ***)&dirnames, d);
+	dynarray_add(&cd_stack, d);
 }
 
 char *dirname_pop()
 {
-	char *r = dynarray_pop((void ***)&dirnames);
-	(void)r;
-	/*fprintf(stderr, "dirname_pop() = %s (%p)\n", r, r);
-	return r; TODO - free*/
-	return NULL;
+	return dynarray_pop(char *, &cd_stack);
 }
 
-void calctime(void)
+static void calctime(void)
 {
 	time_t t;
 	struct tm *now;
@@ -105,17 +102,27 @@ int main(int argc, char **argv)
 	for(i = 0; initial_defs[i].nam; i++)
 		macro_add(initial_defs[i].nam, initial_defs[i].val);
 
-	if(platform_type() == PLATFORM_64){
-		macro_add("__x86_64__", "1");
-		macro_add("__LP64__", "1");
+	switch(platform_type()){
+		case PLATFORM_x86_64:
+			macro_add("__LP64__", "1");
+			macro_add("__x86_64__", "1");
+			break;
+
+		case PLATFORM_mipsel_32:
+			macro_add("__MIPS__", "1");
 	}
 
 	switch(platform_sys()){
 #define MAP(t, s) case t: macro_add(s, "1"); break
 		MAP(PLATFORM_LINUX,   "__linux__");
 		MAP(PLATFORM_FREEBSD, "__FreeBSD__");
-		MAP(PLATFORM_DARWIN,  "__DARWIN__");
 #undef MAP
+
+		case PLATFORM_DARWIN:
+			macro_add("__DARWIN__", "1");
+			macro_add("__MACH__", "1"); /* TODO: proper detection for these */
+			macro_add("__APPLE__", "1");
+			break;
 
 		case PLATFORM_CYGWIN:
 			macro_add("__CYGWIN__", "1");
@@ -135,7 +142,7 @@ int main(int argc, char **argv)
 		switch(argv[i][1]){
 			case 'I':
 				if(argv[i][2])
-					macro_add_dir(argv[i]+2);
+					include_add_dir(argv[i]+2);
 				else
 					goto usage;
 				break;
@@ -167,16 +174,24 @@ int main(int argc, char **argv)
 
 			case 'D':
 			{
+				char *arg = argv[i] + 2;
 				char *eq;
-				if(!argv[i][2])
+				if(!*arg)
 					goto usage;
 
-				eq = strchr(argv[i] + 2, '=');
+				eq = strchr(arg, '=');
 				if(eq){
+					/* FIXME: this is hacky and doesn't
+					 * work for things like "-D531,31;5=a".
+					 * Should be pushed through the parser */
+					if(strchr(arg, '('))
+						die("can't handle function-like macros via -D yet");
+
 					*eq++ = '\0';
-					macro_add(argv[i] + 2, eq);
+
+					macro_add(arg, eq);
 				}else{
-					macro_add(argv[i] + 2, "1"); /* -Dhello means #define hello 1 */
+					macro_add(arg, "1"); /* -Dhello means #define hello 1 */
 				}
 				break;
 			}
@@ -231,13 +246,6 @@ int main(int argc, char **argv)
 	}
 
 	current_fname = infname;
-
-	if(DEBUG_VERB < option_debug){
-		extern macro **macros;
-		for(i = 0; macros[i]; i++)
-			fprintf(stderr, "### macro \"%s\" = \"%s\"\n",
-					macros[i]->nam, macros[i]->val);
-	}
 
 	preprocess();
 

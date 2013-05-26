@@ -7,6 +7,8 @@ static type_ref *type_ref_next_1(type_ref *r)
 
 		r = preferred ? preferred->ref : tdef->type_of->tree_type;
 
+		UCC_ASSERT(r, "unfolded typeof()");
+
 		return r;
 	}
 
@@ -26,6 +28,14 @@ static type_ref *type_ref_skip_tdefs_casts(type_ref *r)
 		}
 
 fin:
+	return r;
+}
+
+type_ref *type_ref_skip_casts(type_ref *r)
+{
+	while(r && r->type == type_ref_cast)
+		r = type_ref_next_1(r);
+
 	return r;
 }
 
@@ -87,7 +97,20 @@ type_ref *type_ref_is_ptr(type_ref *r)
 	return r ? r->ref : NULL;
 }
 
-type *type_ref_get_type(type_ref *r)
+type_ref *type_ref_is_array(type_ref *r)
+{
+	r = type_ref_is(r, type_ref_array);
+	return r ? r->ref : NULL;
+}
+
+type_ref *type_ref_is_scalar(type_ref *r)
+{
+	if(type_ref_is_s_or_u(r) || type_ref_is_array(r))
+		return NULL;
+	return r;
+}
+
+const type *type_ref_get_type(type_ref *r)
 {
 	for(; r && r->type != type_ref_type; r = r->ref);
 
@@ -145,6 +168,14 @@ int type_ref_is_fptr(type_ref *r)
 	return !!type_ref_is(type_ref_is_ptr(r), type_ref_func);
 }
 
+int type_ref_is_nonfptr(type_ref *r)
+{
+	if((r = type_ref_is_ptr(r)))
+		return !type_ref_is(r, type_ref_func);
+
+	return 0; /* not a ptr */
+}
+
 int type_ref_is_void_ptr(type_ref *r)
 {
 	return !!type_ref_is_type(type_ref_is_ptr(r), type_void);
@@ -190,9 +221,10 @@ int type_ref_is_integral(type_ref *r)
 	return 0;
 }
 
-int type_ref_align(type_ref *r, where const *from)
+unsigned type_ref_align(type_ref *r, where const *from)
 {
 	struct_union_enum_st *sue;
+	type_ref *test;
 
 	if((sue = type_ref_is_s_or_u(r)))
 		/* safe - can't have an instance without a ->sue */
@@ -204,8 +236,11 @@ int type_ref_align(type_ref *r, where const *from)
 		return platform_word_size();
 	}
 
-	if((r = type_ref_is(r, type_ref_type)))
-		return type_size(r->bits.type, from);
+	if((test = type_ref_is(r, type_ref_type)))
+		return type_size(test->bits.type, from);
+
+	if((test = type_ref_is(r, type_ref_array)))
+		return type_ref_align(test->ref, from);
 
 	return 1;
 }
@@ -218,7 +253,7 @@ int type_ref_is_complete(type_ref *r)
 	switch(r->type){
 		case type_ref_type:
 		{
-			type *t = r->bits.type;
+			const type *t = r->bits.type;
 
 			switch(t->primitive){
 				case type_void:

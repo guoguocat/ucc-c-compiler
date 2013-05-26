@@ -10,6 +10,7 @@
 #  define ucc_wur  __attribute__((warn_unused_result))
 #  define ucc_nonnull(args) __attribute__((nonnull args))
 #  define ucc_static_param static
+#  define ucc_const __attribute__((const))
 
 #else
 #  define ucc_printflike(a, b)
@@ -28,6 +29,9 @@ typedef struct where
 	const char *fname, *line_str;
 	int line, chr;
 } where;
+#define WHERE_INIT(fnam, lstr, n, c) { fnam, lstr, n, c }
+
+extern int warning_count;
 
 #define WHERE_BUF_SIZ 128
 const char *where_str(const struct where *w);

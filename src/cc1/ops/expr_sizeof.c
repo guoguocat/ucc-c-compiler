@@ -84,12 +84,8 @@ void fold_expr_sizeof(expr *e, symtable *stab)
 						? type_ref_size : type_ref_align)(
 							SIZEOF_WHAT(e), &e->where);
 
-			{
-				type *t;
-				e->tree_type = type_ref_new_type(t = type_new_primitive(type_long));
-				/* size_t */
-				t->is_signed = 0;
-			}
+			/* size_t */
+			e->tree_type = type_ref_new_type(type_new_primitive_signed(type_long, 0));
 			break;
 		}
 	}
@@ -103,19 +99,17 @@ void const_expr_sizeof(expr *e, consty *k)
 	k->type = CONST_VAL;
 }
 
-void gen_expr_sizeof(expr *e, symtable *stab)
+void gen_expr_sizeof(expr *e)
 {
 	type_ref *r = SIZEOF_WHAT(e);
-	(void)stab;
 
 	out_push_i(e->tree_type, SIZEOF_SIZE(e));
 
 	out_comment("sizeof %s%s", e->expr ? "" : "type ", type_ref_to_str(r));
 }
 
-void gen_expr_str_sizeof(expr *e, symtable *stab)
+void gen_expr_str_sizeof(expr *e)
 {
-	(void)stab;
 	if(e->expr){
 		idt_printf("sizeof expr:\n");
 		print_expr(e->expr);
@@ -124,7 +118,7 @@ void gen_expr_str_sizeof(expr *e, symtable *stab)
 	}
 
 	if(e->what_of == what_sizeof)
-		idt_printf("size = %ld\n", SIZEOF_SIZE(e));
+		idt_printf("size = %d\n", SIZEOF_SIZE(e));
 }
 
 void mutate_expr_sizeof(expr *e)
@@ -148,5 +142,21 @@ expr *expr_new_sizeof_expr(expr *sizeof_this, enum what_of what_of)
 	return e;
 }
 
-void gen_expr_style_sizeof(expr *e, symtable *stab)
-{ (void)e; (void)stab; /* TODO */ }
+void gen_expr_style_sizeof(expr *e)
+{
+	switch(e->what_of){
+		case what_typeof:
+			stylef("typeof(");
+		case what_sizeof:
+			stylef("sizeof(");
+		case what_alignof:
+			stylef("alignof(");
+	}
+
+	if(e->expr)
+		gen_expr(e->expr);
+	else
+		stylef("%s", type_ref_to_str(e->bits.size_of.of_type));
+
+	stylef(")");
+}

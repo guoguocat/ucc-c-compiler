@@ -16,51 +16,20 @@
 #include "../gen_asm.h"
 #include "../decl_init.h"
 
-static const struct
-{
-	int sz;
-	char ch;
-	const char *directive;
-	const char *regpre, *regpost;
-} asm_type_table[] = {
-	{ 1,  'b', "byte", "",  "l"  },
-	{ 2,  'w', "word", "",  "x"  },
-	{ 4,  'l', "long", "e", "x" },
-	{ 8,  'q', "quad", "r", "x" },
-
-	/* llong */
-	{ 16,  '\0', "???", "r", "x" },
-
-	/* ldouble */
-	{ 10,  '\0', "???", "r", "x" },
-};
-#define ASM_TABLE_MAX 3
-
-enum
-{
-	ASM_INDEX_CHAR    = 0,
-	ASM_INDEX_SHORT   = 1,
-	ASM_INDEX_INT     = 2,
-	ASM_INDEX_LONG    = 3,
-	ASM_INDEX_LLONG   = 4,
-	ASM_INDEX_LDOUBLE = 5,
-};
-
 int asm_table_lookup(type_ref *r)
 {
 	int sz;
 	int i;
 
 	if(!r)
-		return ASM_INDEX_LONG;
-
-	/* special case for funcs and arrays */
-	if(type_ref_is(r, type_ref_array) || type_ref_is(r, type_ref_func))
+		sz = type_primitive_size(type_long); /* or ptr */
+	else if(type_ref_is(r, type_ref_array) || type_ref_is(r, type_ref_func))
+		/* special case for funcs and arrays */
 		sz = platform_word_size();
 	else
 		sz = type_ref_size(r, NULL);
 
-	for(i = 0; i <= ASM_TABLE_MAX; i++)
+	for(i = 0; i < ASM_TABLE_LEN; i++)
 		if(asm_type_table[i].sz == sz)
 			return i;
 
@@ -78,123 +47,131 @@ const char *asm_type_directive(type_ref *r)
 	return asm_type_table[asm_table_lookup(r)].directive;
 }
 
-void asm_reg_name(type_ref *r, const char **regpre, const char **regpost)
-{
-	const int i = asm_table_lookup(r);
-	*regpre  = asm_type_table[i].regpre;
-	*regpost = asm_type_table[i].regpost;
-}
-
 int asm_type_size(type_ref *r)
 {
 	return asm_type_table[asm_table_lookup(r)].sz;
 }
 
-static void asm_declare_pad(FILE *f, unsigned pad)
+static void asm_declare_pad(FILE *f, unsigned pad, const char *why)
 {
 	if(pad)
-		fprintf(f, ".space %u\n", pad);
+		fprintf(f, ".space %u # %s\n", pad, why);
 }
 
-static void asm_declare_init(FILE *f, stmt *init_code, type_ref *tfor)
+static void asm_declare_init(FILE *f, decl_init *init, type_ref *tfor)
 {
 	type_ref *r;
 
-	if((r = type_ref_is_type(tfor, type_struct))){
+	if(init == DYNARRAY_NULL)
+		init = NULL;
+
+	if(!init){
+		asm_declare_pad(f, type_ref_size(tfor, NULL),
+				"null init"/*, type_ref_to_str(tfor)*/);
+
+	}else if((r = type_ref_is_type(tfor, type_struct))){
 		/* array of stmts for each member
-		 * assumes the ->codes order is member order
+		 * assumes the ->bits.inits order is member order
 		 */
-		struct_union_enum_st *sue = r->bits.type->sue;
-		sue_member **mem = sue->members;
-		stmt **i, *two[2];
+		sue_member **mem;
+		decl_init **i;
 		int end_of_last = 0;
-		static int pws;
 
-		if(!pws)
-			pws = platform_word_size();
-
-		if(init_code){
-			if(init_code->codes){
-				i = init_code->codes;
-			}else{
-				/* single value init, i.e.
-				 * struct
-				 * {
-				 *   struct
-				 *   {
-				 *     int i;
-				 *   } a;
-				 * } b = { 1 };
-				 */
-				two[0] = init_code;
-				two[1] = NULL;
-				i = two;
-			}
-		}else{
-			i = NULL;
-		}
+		UCC_ASSERT(init->type == decl_init_brace, "unbraced struct");
+		i = init->bits.ar.inits;
 
 		/* iterate using members, not inits */
-		for(mem = sue->members;
+		for(mem = r->bits.type->sue->members;
 				mem && *mem;
 				mem++)
 		{
 			decl *d_mem = (*mem)->struct_member;
 
-			asm_declare_pad(f, d_mem->struct_offset - end_of_last);
+			asm_declare_pad(f, d_mem->struct_offset - end_of_last, "struct padding");
 
 			asm_declare_init(f, i ? *i : NULL, d_mem->ref);
 
-			if(i){
-				++i;
-				if(!*i)
-					i = NULL;
-			}
+			if(i && !*++i)
+				i = NULL; /* reached end */
 
 			end_of_last = d_mem->struct_offset + type_ref_size(d_mem->ref, NULL);
 		}
 
 	}else if((r = type_ref_is(tfor, type_ref_array))){
-		stmt **i;
+		size_t i;
+		decl_init **p;
 		type_ref *next = type_ref_next(tfor);
 
-		if(init_code){
-			for(i = init_code->codes; i && *i; i++)
-				asm_declare_init(f, *i, next);
-		}else{
-			/* we should have a size */
-			asm_declare_pad(f, type_ref_size(r, NULL));
-		}
+		UCC_ASSERT(init->type == decl_init_brace, "unbraced struct");
+		UCC_ASSERT(type_ref_is_complete(tfor), "incomplete array init");
 
-	}else{
-		if(!init_code){
-			asm_declare_pad(f, type_ref_size(tfor, NULL));
+		for(i = type_ref_array_len(tfor), p = init->bits.ar.inits;
+				i > 0;
+				i--)
+		{
+			decl_init *this = NULL;
+			if(*p){
+				this = *p++;
 
-		}else if(init_code->codes){
-			UCC_ASSERT(dynarray_count((void **)init_code->codes) == 1,
-					"too many init codes");
-
-			asm_declare_init(f, init_code->codes[0], tfor);
-		}else{
-			/* scalar */
-			expr *exp = init_code->expr;
-
-			UCC_ASSERT(exp, "no exp for init (%W)", &init_code->where);
-			UCC_ASSERT(expr_kind(exp, assign), "not assign");
-
-			exp = exp->rhs; /* rvalue */
-
-			/* exp->tree_type should match tfor */
-			{
-				UCC_ASSERT(type_ref_equal(exp->tree_type, tfor, DECL_CMP_ALLOW_VOID_PTR),
-						"mismatching init types: %R and %R",
-						exp->tree_type, tfor);
+				if(this != DYNARRAY_NULL && this->type == decl_init_copy){
+					/*fprintf(f, "# copy from %lu\n", DECL_INIT_COPY_IDX(this, init));*/
+					struct init_cpy *icpy = *this->bits.range_copy;
+					/* resolve the copy */
+					this = icpy->range_init;
+				}
 			}
 
-			fprintf(f, ".%s ", asm_type_directive(exp->tree_type));
-			static_addr(exp);
-			fputc('\n', f);
+			asm_declare_init(f, this, next);
 		}
+
+	}else if((r = type_ref_is_type(tfor, type_union))){
+		/* union inits are decl_init_brace with spaces up to the first union init,
+		 * then NULL/end of the init-array */
+		struct_union_enum_st *sue = type_ref_is_s_or_u(r);
+		unsigned i, sub = 0;
+
+		UCC_ASSERT(init->type == decl_init_brace, "brace init expected");
+
+		/* skip the empties until we get to one */
+		for(i = 0; init->bits.ar.inits[i] == DYNARRAY_NULL; i++);
+
+		if(init->bits.ar.inits[i]){
+			/* null union init */
+			type_ref *mem_r = sue->members[i]->struct_member->ref;
+
+			/* union init, member at index `i' */
+			asm_declare_init(f, init->bits.ar.inits[i], mem_r);
+
+			sub = type_ref_size(mem_r, NULL);
+		}
+
+		asm_declare_pad(f,
+				type_ref_size(r, NULL) - sub,
+				"union extra");
+
+	}else{
+		/* scalar */
+		expr *exp = init->bits.expr;
+
+		UCC_ASSERT(init->type == decl_init_scalar, "scalar init expected");
+
+		if(exp == DYNARRAY_NULL)
+			exp = NULL;
+
+		/* exp->tree_type should match tfor */
+		{
+			char buf[TYPE_REF_STATIC_BUFSIZ];
+
+			UCC_ASSERT(type_ref_equal(exp->tree_type, tfor,
+						DECL_CMP_ALLOW_VOID_PTR | DECL_CMP_ALLOW_SIGNED_UNSIGNED),
+					"mismatching init types: %R and %R",
+					exp->tree_type, tfor);
+		}
+
+		/* use tfor, since "abc" has type (char[]){(int)'a', (int)'b', ...} */
+		fprintf(f, ".%s ", asm_type_directive(tfor));
+		static_addr(exp);
+		fputc('\n', f);
 	}
 }
 
@@ -213,19 +190,7 @@ static void asm_reserve_bytes(unsigned nbytes)
 	 * TODO: .comm buf,512,5
 	 * or    .zerofill SECTION_NAME,buf,512,5
 	 */
-	while(nbytes > 0){
-		int i;
-
-		for(i = ASM_TABLE_MAX; i >= 0; i--){
-			const unsigned sz = asm_type_table[i].sz;
-
-			if(nbytes >= sz){
-				asm_out_section(SECTION_BSS, ".%s 0\n", asm_type_table[i].directive);
-				nbytes -= sz;
-				break;
-			}
-		}
-	}
+	asm_out_section(SECTION_BSS, ".space %u\n", nbytes);
 }
 
 void asm_predeclare_extern(decl *d)
@@ -239,6 +204,7 @@ void asm_predeclare_extern(decl *d)
 
 void asm_predeclare_global(decl *d)
 {
+	/* FIXME: section cleanup - along with __attribute__((section("..."))) */
 	asm_out_section(SECTION_TEXT, ".globl %s\n", decl_asm_spel(d));
 }
 
@@ -247,16 +213,15 @@ void asm_declare_decl_init(FILE *f, decl *d)
 	if((d->store & STORE_MASK_STORE) == store_extern){
 		asm_predeclare_extern(d);
 
+	}else if(d->init && !decl_init_is_zero(d->init)){
+		asm_nam_begin(f, d);
+		asm_declare_init(f, d->init, d->ref);
+		fputc('\n', f);
+
 	}else{
-		if(d->init && !decl_init_is_zero(d->init)){
-			asm_nam_begin(f, d);
-			asm_declare_init(f, d->decl_init_code, d->ref);
-			fputc('\n', f);
-		}else{
-			/* always resB, since we use decl_size() */
-			asm_nam_begin(cc_out[SECTION_BSS], d);
-			asm_reserve_bytes(decl_size(d));
-		}
+		/* always resB, since we use decl_size() */
+		asm_nam_begin(cc_out[SECTION_BSS], d);
+		asm_reserve_bytes(decl_size(d));
 	}
 }
 

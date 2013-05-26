@@ -19,13 +19,13 @@
 #include "decl_init.h"
 #include "pack.h"
 #include "funcargs.h"
+#include "out/lbl.h"
 
 decl     *curdecl_func;
 type_ref *curdecl_ref_func_called; /* for funcargs-local labels and return type-checking */
 
 static where asm_struct_enum_where;
 
-/* FIXME: don't have the callers do type_ref_to_str() */
 int fold_type_ref_equal(
 		type_ref *a, type_ref *b, where *w,
 		enum warning warn, enum decl_cmp extra_flags,
@@ -150,7 +150,7 @@ expr *fold_expr(expr *e, symtable *stab)
 	EOF_WHERE(&e->where,
 			type_ref *decayed = type_ref_decay(r);
 
-			if(decayed != r)
+			if(!type_ref_equal(decayed, r, DECL_CMP_EXACT_MATCH))
 				imp_cast = expr_new_cast(decayed, 1);
 		);
 
@@ -169,7 +169,7 @@ void fold_enum(struct_union_enum_st *en, symtable *stab)
 	sue_member **i;
 	int defval = has_bitmask;
 
-	for(i = en->members; *i; i++){
+	for(i = en->members; i && *i; i++){
 		enum_member *m = (*i)->enum_member;
 		expr *e = m->val;
 
@@ -205,10 +205,14 @@ int fold_sue(struct_union_enum_st *const sue, symtable *stab)
 	if(sue->primitive == type_enum){
 		fold_enum(sue, stab);
 
-		return sue->size = sue_size(sue, &sue->where);
+		/* we don't call sue_size as that dies on a forward-enum,
+		 * we want to die later, when we have the decl location
+		 */
+		return sue_enum_size(sue);
 
 	}else{
 		int align_max = 1;
+		int sz_max = 0;
 		int offset = 0;
 		sue_member **i;
 
@@ -242,23 +246,37 @@ normal:
 			}
 
 
-			{
+			if(sue->primitive == type_struct){
+				const int prev_offset = offset;
 				int after_space;
 
 				pack_next(&offset, &after_space, sz, align);
 				/* offset is the end of the decl, after_space is the start */
 
-				if(sue->primitive == type_struct)
-					d->struct_offset = after_space;
-				/* else - union, all offsets are the same */
+				d->struct_offset = after_space;
 
-				if(align > align_max)
-					align_max = align;
+				{
+					int pad = after_space - prev_offset;
+					if(pad){
+						cc1_warn_at(&d->where, 0, 1, WARN_PAD,
+								"padding '%s' with %d bytes to align '%Q'",
+								sue->spel, pad, d);
+					}
+				}
 			}
+
+			if(align > align_max)
+				align_max = align;
+			if(sz > sz_max)
+				sz_max = sz;
 		}
 
 		sue->align = align_max;
-		return sue->size = offset;
+		sue->size = pack_to_align(
+				sue->primitive == type_struct ? offset : sz_max,
+				align_max);
+
+		return sue->size;
 	}
 }
 
@@ -303,8 +321,8 @@ void fold_type_ref(type_ref *r, type_ref *parent, symtable *stab)
 
 		case type_ref_block:
 			if(!type_ref_is(r->ref, type_ref_func))
-				DIE_AT(&r->where, "invalid block pointer - function required (got %s)",
-						type_ref_to_str(r->ref));
+				DIE_AT(&r->where, "invalid block pointer - function required (got %R)",
+						r->ref);
 
 			/*q_to_check = r->bits.block.qual; - allowed */
 			break;
@@ -338,7 +356,7 @@ void fold_type_ref(type_ref *r, type_ref *parent, symtable *stab)
 	 * since typedef int *intptr; intptr restrict a; is valid
 	 */
 	if(q_to_check & qual_restrict)
-		WARN_AT(&r->where, "restrict on non-pointer type '%s'", type_ref_to_str(r));
+		WARN_AT(&r->where, "restrict on non-pointer type '%R'", r);
 
 	fold_type_ref(r->ref, r, stab);
 }
@@ -359,6 +377,14 @@ static int fold_align(int al, int min, int max, where *w)
 	return max;
 }
 
+static void fold_func_attr(decl *d)
+{
+	funcargs *fa = type_ref_funcargs(d->ref);
+
+	if(decl_has_attr(d, attr_sentinel) && !fa->variadic)
+		WARN_AT(&d->where, "variadic function required for sentinel check");
+}
+
 void fold_decl(decl *d, symtable *stab)
 {
 	decl_attr *attrib = NULL;
@@ -370,7 +396,7 @@ void fold_decl(decl *d, symtable *stab)
 	/* if we have a type and it's incomplete, error */
 	no - only on use
 	if(!type_ref_is_complete(d->ref))
-		DIE_AT(&d->where, "use of incomplete type - %s (%s)", d->spel, decl_to_str(d));
+		DIE_AT(&d->where, "use of incomplete type - %s (%Q)", d->spel, d);
 #endif
 
 #ifdef FIELD_WIDTH_TODO
@@ -392,10 +418,10 @@ void fold_decl(decl *d, symtable *stab)
 			DIE_AT(&d->where, "field width must be positive");
 
 		if(!decl_is_integral(d))
-			DIE_AT(&d->where, "field width on non-integral type %s", decl_to_str(d));
+			DIE_AT(&d->where, "field width on non-integral type %Q", d);
 
 		if(width == 1 && t->is_signed)
-			WARN_AT(&d->where, "%s 1-bit field width is signed (-1 and 0)", decl_to_str(d));
+			WARN_AT(&d->where, "%Q 1-bit field width is signed (-1 and 0)", d);
 
 		can_align = 0;
 	}
@@ -425,6 +451,9 @@ void fold_decl(decl *d, symtable *stab)
 		}
 
 		can_align = 0;
+
+		fold_func_attr(d);
+
 	}else if((d->store & STORE_MASK_EXTRA) == store_inline){
 		WARN_AT(&d->where, "inline on non-function");
 	}
@@ -439,7 +468,7 @@ void fold_decl(decl *d, symtable *stab)
 			can_align = 0;
 
 		if(!can_align)
-			DIE_AT(&d->where, "can't align %s", decl_to_str(d));
+			DIE_AT(&d->where, "can't align %Q", d);
 
 		for(i = d->align; i; i = i->next){
 			int al;
@@ -488,16 +517,12 @@ void fold_decl(decl *d, symtable *stab)
 
 void fold_decl_global_init(decl *d, symtable *stab)
 {
-	stmt *assignments;
-
 	if(!d->init)
 		return;
 
 	EOF_WHERE(&d->where,
-			assignments = stmt_new_wrapper(code, symtab_new(stab));
-
 		/* this completes the array, if any */
-		decl_init_create_assignments_for_spel(d, assignments);
+		decl_init_brace_up_fold(d, stab);
 	);
 
 	if(!decl_init_is_const(d->init, stab)){
@@ -505,9 +530,6 @@ void fold_decl_global_init(decl *d, symtable *stab)
 				stab->parent ? "static" : "global",
 				decl_init_to_str(d->init->type));
 	}
-
-	fold_stmt(assignments);
-	d->decl_init_code = assignments;
 }
 
 void fold_decl_global(decl *d, symtable *stab)
@@ -519,8 +541,9 @@ void fold_decl_global(decl *d, symtable *stab)
 			break;
 
 		case store_inline: /* allowed, but not accessible via STORE_MASK_STORE */
-		case store_typedef:
-			ICE("%s store", decl_store_to_str(d->store));
+			ICE("inline");
+		case store_typedef: /* global typedef */
+			break;
 
 		case store_auto:
 		case store_register:
@@ -538,12 +561,82 @@ void fold_decl_global(decl *d, symtable *stab)
 	fold_decl_global_init(d, stab);
 }
 
-void fold_symtab_scope(symtable *stab)
+void fold_symtab_scope(symtable *stab, stmt **pinit_code)
 {
+#define inits (*pinit_code)
+	/* this is called from wherever we can define a
+	 * struct/union/enum,
+	 * e.g. a code-block (explicit or implicit),
+	 *      global scope
+	 * and an if/switch/while statement: if((struct A { int i; } *)0)...
+	 */
+
 	struct_union_enum_st **sit;
+	decl **diter;
+
+	if(stab->folded)
+		return;
+	stab->folded = 1;
 
 	for(sit = stab->sues; sit && *sit; sit++)
 		fold_sue(*sit, stab);
+
+	for(diter = stab->decls; diter && *diter; diter++){
+		decl *d = *diter;
+
+		fold_decl(d, stab);
+
+		if(stab->parent){
+			if(d->func_code)
+				DIE_AT(&d->func_code->where, "can't nest functions (%s)", d->spel);
+			else if(DECL_IS_FUNC(d) && (d->store & STORE_MASK_STORE) == store_static)
+				DIE_AT(&d->where, "block-scoped function cannot have static storage");
+		}
+
+		/* must be before fold*, since sym lookups are done */
+		if(d->sym){
+			/* arg */
+			UCC_ASSERT(d->sym->type != sym_local || !d->spel /* anon sym, e.g. strk */,
+					"%s given symbol too early",
+					d->spel);
+		}else{
+			d->sym = sym_new(d,
+					!stab->parent || decl_store_static_or_extern(d->store) ?
+					sym_global :
+					sym_local);
+		}
+
+		if(d->init && pinit_code){
+			/* this creates the below s->inits array */
+			if((d->store & STORE_MASK_STORE) == store_static){
+				fold_decl_global_init(d, stab);
+			}else{
+				EOF_WHERE(&d->where,
+						if(!inits)
+							inits = stmt_new_wrapper(code, symtab_new(stab));
+
+						decl_init_brace_up_fold(d, inits->symtab);
+						decl_init_create_assignments_base(d->init,
+							d->ref, expr_new_identifier(d->spel),
+							inits);
+					);
+				/* folded elsewhere */
+			}
+		}
+
+		/* check static decls
+		 * -> doesn't need to be after fold since we change .spel_asm
+		 *
+		 * don't for anonymous symbols, they're referenced via other means
+		 */
+		if(curdecl_func){
+			d->is_definition = 1;
+
+			if((d->store & STORE_MASK_STORE) == store_static && d->spel)
+				d->spel_asm = out_label_static_local(curdecl_func->spel, d->spel);
+		}
+	}
+#undef inits
 }
 
 void fold_need_expr(expr *e, const char *stmt_desc, int is_test)
@@ -556,8 +649,8 @@ void fold_need_expr(expr *e, const char *stmt_desc, int is_test)
 
 	if(is_test){
 		if(!type_ref_is_bool(e->tree_type)){
-			cc1_warn_at(&e->where, 0, 1, WARN_TEST_BOOL, "testing a non-boolean expression, %s, in %s",
-					type_ref_to_str(e->tree_type), stmt_desc);
+			cc1_warn_at(&e->where, 0, 1, WARN_TEST_BOOL, "testing a non-boolean expression, %R, in %s",
+					e->tree_type, stmt_desc);
 		}
 
 		if(expr_kind(e, addr)){
@@ -592,8 +685,8 @@ void print_stab(symtable *st, int current, where *w)
 
 	fprintf(stderr, "\ttable %p, children %d, vars %d, parent: %p",
 			(void *)st,
-			dynarray_count((void **)st->children),
-			dynarray_count((void **)st->decls),
+			dynarray_count(st->children),
+			dynarray_count(st->decls),
 			(void *)st->parent);
 
 	if(current)
@@ -627,7 +720,7 @@ void fold_stmt_and_add_to_curswitch(stmt *t)
 	if(!t->parent)
 		DIE_AT(&t->where, "%s not inside switch", t->f_str());
 
-	dynarray_add((void ***)&t->parent->codes, t);
+	dynarray_add(&t->parent->codes, t);
 
 	/* we are compound, copy some attributes */
 	t->kills_below_code = t->lhs->kills_below_code;
@@ -669,8 +762,8 @@ void fold_funcargs(funcargs *fargs, symtable *stab, type_ref *from)
 			&& !type_ref_is(d->ref, type_ref_ptr)
 			&& !type_ref_is(d->ref, type_ref_block))
 			{
-				WARN_AT(&fargs->arglist[i]->where, "nonnull attribute applied to non-pointer argument '%s'",
-						type_ref_to_str(d->ref));
+				WARN_AT(&fargs->arglist[i]->where, "nonnull attribute applied to non-pointer argument '%R'",
+						d->ref);
 			}
 		}
 
@@ -775,11 +868,11 @@ static void fold_link_decl_defs(dynmap *spel_decls)
 		int count_inline, count_extern, count_static, count_total;
 		char *asm_rename;
 
-		key = dynmap_key(spel_decls, i);
+		key = dynmap_key(char *, spel_decls, i);
 		if(!key)
 			break;
 
-		decls_for_this = dynmap_get(spel_decls, key);
+		decls_for_this = dynmap_get(char *, decl **, spel_decls, key);
 		d = *decls_for_this;
 
 		definition = decl_is_definition(d) ? d : NULL;
@@ -861,7 +954,7 @@ static void fold_link_decl_defs(dynmap *spel_decls)
         definition = d;
 		}
 
-		count_total = dynarray_count((void **)decls_for_this);
+		count_total = dynarray_count(decls_for_this);
 
 		if(DECL_IS_FUNC(definition)){
 			/*
@@ -947,57 +1040,43 @@ void fold(symtable *globs)
 
 		/* const char * */
 		(fargs->arglist[0] = decl_new())->ref = type_ref_new_ptr(
-				type_ref_new_cast_add(
-					type_ref_new_type(type_new_primitive(type_char)),
-					qual_const),
+				type_ref_new_type_qual(type_char, qual_const),
 				qual_none);
 
-		df->ref = type_ref_new_func(type_ref_new_INT(), fargs);
+		df->ref = type_ref_new_func(type_ref_cached_INT(), fargs);
 
-		symtab_add(globs, df, sym_global, SYMTAB_NO_SYM, SYMTAB_PREPEND);
+		ICE("__asm__ symtable");
+		/*symtab_add(globs, df, sym_global, SYMTAB_NO_SYM, SYMTAB_PREPEND);*/
 
 		eof_where = old_w;
 	}
 
-	fold_symtab_scope(globs);
+	fold_symtab_scope(globs, NULL);
 
 	if(!globs->decls)
 		goto skip_decls;
 
-	for(i = 0; D(i); i++)
-		if(D(i)->sym)
-			ICE("%W: sym (%p) already set for global \"%s\"", &D(i)->where, (void *)D(i)->sym, D(i)->spel);
-
 	spel_decls = dynmap_new((dynmap_cmp_f *)strcmp);
 
-	for(;;){
-		int i;
+	for(i = 0; D(i); i++){
+		char *key = D(i)->spel;
 
-		/* find the next sym (since we can prepend, start at 0 each time */
-		for(i = 0; D(i); i++)
-			if(!D(i)->sym)
-				break;
+		if(key){
+			/* skip anonymous (e.g. string) symbols/decls */
+			decl **val = dynmap_get(char *, decl **, spel_decls, key);
 
-		if(!D(i))
-			break; /* finished */
+			dynarray_add(&val, D(i)); /* fine if val is null */
 
-		{
-			char *key = D(i)->spel;
-			decl **val = dynmap_get(spel_decls, key);
-
-			dynarray_add((void ***)&val, D(i)); /* fine if val is null */
-
-			dynmap_set(spel_decls, key, val);
+			dynmap_set(char *, decl **, spel_decls, key, val);
 		}
-
-		D(i)->sym = sym_new(D(i), sym_global);
 
 		fold_decl_global(D(i), globs);
 
 		if(DECL_IS_FUNC(D(i))){
 			if(decl_is_definition(D(i))){
 				/* gather round, attributes */
-				decl **const protos = dynmap_get(spel_decls, D(i)->spel);
+				decl **const protos = dynmap_get(char *, decl **,
+						spel_decls, D(i)->spel);
 				decl **proto_i;
 				int is_void = 0;
 
@@ -1047,7 +1126,7 @@ skip_decls:
 
 			const_fold(sa->e, &k);
 
-			if(!is_const(k.type))
+			if(!CONST_AT_COMPILE_TIME(k.type))
 				DIE_AT(&sa->e->where, "static assert: not a constant expression (%s)", sa->e->f_str());
 
 			if(!k.bits.iv.val)

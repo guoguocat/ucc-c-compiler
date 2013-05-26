@@ -25,9 +25,9 @@ void fold_const_expr_if(expr *e, consty *k)
 		consts[1] = consts[0];
 
 	/* we're only const if expr, lhs and rhs are const */
-	if(!is_const(consts[0].type)
-	|| !is_const(consts[1].type)
-	|| !is_const(consts[2].type))
+	if(!CONST_AT_COMPILE_TIME(consts[0].type)
+	|| !CONST_AT_COMPILE_TIME(consts[1].type)
+	|| !CONST_AT_COMPILE_TIME(consts[2].type))
 	{
 		k->type = CONST_NO;
 		return;
@@ -121,7 +121,7 @@ void fold_expr_if(expr *e, symtable *stab)
 						tt_l, tt_r);
 
 				/* void * */
-				e->tree_type = type_ref_new_ptr(type_ref_new_VOID(), qual_none);
+				e->tree_type = type_ref_new_ptr(type_ref_cached_VOID(), qual_none);
 
 				{
 					enum type_qualifier q = type_ref_qual(tt_l) | type_ref_qual(tt_r);
@@ -134,7 +134,7 @@ void fold_expr_if(expr *e, symtable *stab)
 				WARN_AT(&e->where, "conditional type mismatch (%R vs %R)",
 						tt_l, tt_r);
 
-				e->tree_type = type_ref_new_VOID();
+				e->tree_type = type_ref_cached_VOID();
 			}
 		}
 	}
@@ -143,20 +143,20 @@ void fold_expr_if(expr *e, symtable *stab)
 }
 
 
-void gen_expr_if(expr *e, symtable *stab)
+void gen_expr_if(expr *e)
 {
 	char *lblfin;
 
 	lblfin = out_label_code("ifexp_fi");
 
-	gen_expr(e->expr, stab);
+	gen_expr(e->expr);
 
 	if(e->lhs){
 		char *lblelse = out_label_code("ifexp_else");
 
 		out_jfalse(lblelse);
 
-		gen_expr(e->lhs, stab);
+		gen_expr(e->lhs);
 
 		out_push_lbl(lblfin, 0);
 		out_jmp();
@@ -172,15 +172,14 @@ void gen_expr_if(expr *e, symtable *stab)
 
 	out_pop();
 
-	gen_expr(e->rhs, stab);
+	gen_expr(e->rhs);
 	out_label(lblfin);
 
 	free(lblfin);
 }
 
-void gen_expr_str_if(expr *e, symtable *stab)
+void gen_expr_str_if(expr *e)
 {
-	(void)stab;
 	idt_printf("if expression:\n");
 	gen_str_indent++;
 #define SUB_PRINT(nam) \
@@ -199,6 +198,8 @@ void gen_expr_str_if(expr *e, symtable *stab)
 
 	SUB_PRINT(rhs);
 #undef SUB_PRINT
+
+	gen_str_indent--;
 }
 
 void mutate_expr_if(expr *e)
@@ -213,5 +214,12 @@ expr *expr_new_if(expr *test)
 	return e;
 }
 
-void gen_expr_style_if(expr *e, symtable *stab)
-{ (void)e; (void)stab; /* TODO */ }
+void gen_expr_style_if(expr *e)
+{
+	gen_expr(e->expr);
+	stylef(" ? ");
+	if(e->lhs)
+		gen_expr(e->lhs);
+	stylef(" : ");
+	gen_expr(e->rhs);
+}

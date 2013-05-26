@@ -46,6 +46,9 @@ enum funcargs_cmp funcargs_equal(
 		return FUNCARGS_ARE_EQUAL;
 	}
 
+	if(args_to->args_old_proto || args_from->args_old_proto)
+		return 1;
+
 	if(!(args_to->variadic ? count_to <= count_from : count_to == count_from))
 		return FUNCARGS_ARE_MISMATCH_COUNT;
 

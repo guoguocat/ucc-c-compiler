@@ -21,7 +21,7 @@ void gen_stmt_expr(stmt *s)
 	int pre_vcount = out_vcount();
 	char *sp;
 
-	gen_expr(s->expr, s->symtab);
+	gen_expr(s->expr);
 
 	if((fopt_mode & FOPT_ENABLE_ASM) == 0
 	|| !s->expr
@@ -35,8 +35,18 @@ void gen_stmt_expr(stmt *s)
 			out_pop(); /* cancel the implicit push from gen_expr() above */
 
 		out_comment("end of %s-stmt", s->f_str());
-		UCC_ASSERT(out_vcount() == pre_vcount, "vcount changed over statement");
+
+		UCC_ASSERT(out_vcount() == pre_vcount,
+				"vcount changed over %s statement (%d -> %d)",
+				s->expr->f_str(),
+				out_vcount(), pre_vcount);
 	}
+}
+
+void style_stmt_expr(stmt *s)
+{
+	gen_expr(s->expr);
+	stylef(";\n");
 }
 
 static int expr_passable(stmt *s)

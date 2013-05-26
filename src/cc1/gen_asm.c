@@ -18,26 +18,32 @@
 #include "out/out.h"
 #include "out/lbl.h"
 #include "out/asm.h"
+#include "gen_style.h"
 
 char *curfunc_lblfin; /* extern */
 
-void gen_expr(expr *e, symtable *stab)
+void gen_expr(expr *e)
 {
 	consty k;
 
 	const_fold(e, &k);
 
-	if(k.type == CONST_VAL) /* TODO: -O0 skips this */
-		out_push_iv(e->tree_type, &k.bits.iv);
-	else
-		EOF_WHERE(&e->where, e->f_gen(e, stab));
+	if(k.type == CONST_VAL){ /* TODO: -O0 skips this */
+		if(cc1_backend == BACKEND_ASM)
+			out_push_iv(e->tree_type, &k.bits.iv);
+		else
+			stylef("%ld", k.bits.iv.val);
+	}else{
+		EOF_WHERE(&e->where, e->f_gen(e));
+	}
 }
 
-void lea_expr(expr *e, symtable *stab)
+void lea_expr(expr *e)
 {
-	UCC_ASSERT(e->f_lea, "invalid store expression %s (no f_store())", e->f_str());
+	UCC_ASSERT(e->f_lea,
+			"invalid store expression expr-%s (no f_store())", e->f_str());
 
-	e->f_lea(e, stab);
+	e->f_lea(e);
 }
 
 void gen_stmt(stmt *t)
@@ -105,7 +111,7 @@ void gen_func_stack(decl *df, const int offset)
 		ITER_DECLS(iter){
 			decl *d = *iter;
 			if(d->init && d->init->type != decl_init_scalar){
-				ICW("TODO: stack gen or expr for %s init", decl_to_str(d));
+				ICW("TODO: stack gen or expr for %Q init", d);
 			}
 		}
 	}
@@ -129,7 +135,7 @@ void gen_asm_global(decl *d)
 	/* order of the if matters */
 	if(DECL_IS_FUNC(d) || type_ref_is(d->ref, type_ref_block)){
 		/* check .func_code, since it could be a block */
-		int nargs = 0;
+		int nargs = 0, is_vari;
 		decl **aiter;
 		const char *sp;
 
@@ -147,7 +153,7 @@ void gen_asm_global(decl *d)
 		out_func_prologue(
 				d->func_code->symtab->auto_total_size,
 				nargs,
-				decl_is_variadic(d));
+				is_vari = decl_is_variadic(d));
 
 		curfunc_lblfin = out_label_code(sp);
 
@@ -199,10 +205,12 @@ void gen_asm(symtable_global *globs)
 			case store_inline:
 			case store_auto:
 			case store_register:
-			case store_typedef:
-				ICE("%s storage on global %s",
+				ICE("%s storage on global %Q",
 						decl_store_to_str(d->store),
-						decl_to_str(d));
+						d);
+
+			case store_typedef:
+				continue;
 
 			case store_static:
 				break;

@@ -6,6 +6,8 @@ char *dirname_pop(void);
 
 extern const char *current_fname;
 
+extern char **cd_stack;
+
 extern char cpp_time[16], cpp_date[16];
 
 extern int option_line_info;
@@ -18,6 +20,7 @@ extern int current_line;
 	do{                      \
 		current_line--;        \
 		f(NULL, __VA_ARGS__);  \
+		current_line++;        \
 	}while(0)
 
 #define CPP_WARN(...) CPP_X(WARN_AT, __VA_ARGS__)

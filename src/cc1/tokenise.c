@@ -94,6 +94,8 @@ struct statement
 	KEYWORD(_Alignas),
 	KEYWORD__(alignas, token__Alignas),
 
+	{ "__builtin_va_list", token___builtin_va_list },
+
 	KEYWORD(sizeof),
 	KEYWORD(_Generic),
 	KEYWORD(_Static_assert),
@@ -103,7 +105,7 @@ struct statement
 	KEYWORD__(attribute, token_attribute),
 };
 
-static FILE *infile;
+static tokenise_line_f *in_func;
 char *current_fname;
 int buffereof = 0;
 int current_fname_used;
@@ -135,6 +137,15 @@ int current_chr  = 0;
 char *current_line_str = NULL;
 int current_line_str_used = 0;
 
+#define SET_CURRENT(ty, new) do{\
+	if(!current_ ## ty ## _used)  \
+		free(current_ ## ty);       \
+	current_## ty = new;          \
+	current_## ty ##_used = 0; }while(0)
+
+#define SET_CURRENT_FNAME(   new) SET_CURRENT(fname,    new)
+#define SET_CURRENT_LINE_STR(new) SET_CURRENT(line_str, new)
+
 static void add_store_line(char *l)
 {
 	struct line_list *new = umalloc(sizeof *new);
@@ -157,12 +168,9 @@ static void tokenise_read_line()
 		buffer = NULL;
 	}
 
-	l = fline(infile);
+	l = in_func();
 	if(!l){
-		if(feof(infile))
-			buffereof = 1;
-		else
-			die("read():");
+		buffereof = 1;
 	}else{
 		/* check for preprocessor line info */
 		int lno;
@@ -189,11 +197,7 @@ static void tokenise_read_line()
 					fin++;
 				}
 
-				if(!current_fname_used)
-					free(current_fname); /* else it's been taken by one or more where_new()s */
-
-				current_fname = ustrdup2(p + 1, fin);
-				current_fname_used = 0;
+				SET_CURRENT_FNAME(ustrdup2(p + 1, fin));
 			}else{
 				/* check there's nothing left */
 				for(p = l + 2; isdigit(*p); p++);
@@ -214,32 +218,20 @@ static void tokenise_read_line()
 		current_chr = -1;
 	}
 
-	if(l){
-		if(!current_line_str_used)
-			free(current_line_str);
-		current_line_str = ustrdup(l);
-		current_line_str_used = 0;
-	}
+	if(l)
+		SET_CURRENT_LINE_STR(ustrdup(l));
 
 	bufferpos = buffer = l;
 }
 
-void tokenise_set_file(FILE *f, const char *nam)
+void tokenise_set_input(tokenise_line_f *func, const char *nam)
 {
-	infile = f;
+	in_func = func;
 
-	if(!current_fname_used)
-		free(current_fname);
-	current_fname = ustrdup(nam);
-	current_fname_used = 0;
+	SET_CURRENT_FNAME(ustrdup(nam));
+	SET_CURRENT_LINE_STR(NULL);
 
-	if(!current_line_str_used)
-		free(current_line_str);
-	current_line_str = NULL;
-	current_line_str_used = 0;
-
-	current_line = 0;
-	buffereof = 0;
+	current_line = buffereof = parse_finished = 0;
 	nexttoken();
 }
 
@@ -286,12 +278,16 @@ static void add_suffix(enum intval_suffix s)
 	currentval.suffix |= s;
 }
 
-void read_number(const enum base mode)
+static void read_number(enum base mode)
 {
 	int read_suffix = 1;
 	int nlen;
 
 	char_seq_to_iv(bufferpos, &currentval, &nlen, mode);
+
+	if(nlen == 0)
+		DIE_AT(NULL, "%s-number expected (got '%c')",
+				base_to_str(mode), peeknextchar());
 
 	bufferpos += nlen;
 
@@ -312,7 +308,7 @@ void read_number(const enum base mode)
 		}
 }
 
-static enum token curtok_to_xequal()
+static enum token curtok_to_xequal(void)
 {
 #define MAP(x) case x: return x ## _assign
 	switch(curtok){
@@ -338,7 +334,7 @@ static enum token curtok_to_xequal()
 
 static int curtok_is_xequal()
 {
-	return curtok_to_xequal(curtok) != token_unknown;
+	return curtok_to_xequal() != token_unknown;
 }
 
 static void read_string(char **sptr, int *plen)
@@ -481,12 +477,14 @@ void nexttoken()
 		enum base mode;
 
 		if(c == '0'){
-			switch(tolower(c = nextchar())){
+			switch(tolower(c = peeknextchar())){
 				case 'x':
 					mode = HEX;
+					nextchar();
 					break;
 				case 'b':
 					mode = BIN;
+					nextchar();
 					break;
 				default:
 					if(!isoct(c)){
@@ -494,11 +492,11 @@ void nexttoken()
 							DIE_AT(NULL, "invalid oct character '%c'", c);
 						else
 							mode = DEC; /* just zero */
+
+						bufferpos--; /* have the zero */
 					}else{
 						mode = OCT;
 					}
-
-					bufferpos--; /* rewind over c */
 					break;
 			}
 		}else{
@@ -550,19 +548,18 @@ void nexttoken()
 	}
 
 	if(c == '.'){
+		curtok = token_dot;
+
 		if(peeknextchar() == '.'){
 			nextchar();
 			if(peeknextchar() == '.'){
 				nextchar();
 				curtok = token_elipsis;
-			}else{
-				DIE_AT(NULL, "unknown token \"..\"\n");
 			}
-			return;
-		}else{
-			curtok = token_dot;
-			return;
+			/* else leave it at token_dot and next as token_dot;
+			 * parser will get an error */
 		}
+		return;
 	}
 
 	switch(c == 'L' ? peeknextchar() : 0){

@@ -66,14 +66,13 @@ struct type
 
 enum type_cmp
 {
-	TYPE_CMP_EXACT                 = 1 << 0,
+	TYPE_CMP_EXACT         = 1 << 0,
 	TYPE_CMP_ALLOW_SIGNED_UNSIGNED = 1 << 1,
 };
 
-type *type_new(void);
-type *type_new_primitive(enum type_primitive);
-type *type_new_primitive_signed(enum type_primitive, int is_signed);
-type *type_copy(type *);
+const type *type_new_primitive(enum type_primitive);
+const type *type_new_primitive_signed(enum type_primitive, int sig);
+const type *type_new_primitive_sue(enum type_primitive, struct_union_enum_st *);
 #define type_free(x) free(x)
 
 void where_new(struct where *w);
@@ -82,12 +81,12 @@ const char *op_to_str(  const enum op_type o);
 const char *type_to_str(const type *t);
 
 const char *type_primitive_to_str(const enum type_primitive);
-      char *type_qual_to_str(     const enum type_qualifier);
+const char *type_qual_to_str(     const enum type_qualifier, int trailing_space);
 
 int type_equal(const type *a, const type *b, enum type_cmp mode);
 int type_qual_equal(enum type_qualifier, enum type_qualifier);
-int type_size( const type *, where const *from);
-int type_primitive_size(enum type_primitive tp);
+unsigned type_size( const type *, where const *from);
+unsigned type_primitive_size(enum type_primitive tp);
 
 int op_is_relational(enum op_type o);
 int op_is_shortcircuit(enum op_type o);
