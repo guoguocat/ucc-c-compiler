@@ -9,4 +9,6 @@ char *ustrdup2(const char *, const char *b); /* up to, but not including b */
 char *ustrprintf( const char *, ...);
 char *ustrvprintf(const char *, va_list);
 
+char *str_join(char **, const char *with);
+
 #endif

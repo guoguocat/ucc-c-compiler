@@ -89,3 +89,22 @@ char *ustrprintf(const char *fmt, ...)
 	va_end(l);
 	return r;
 }
+
+char *str_join(char **strs, const char *with)
+{
+	const int with_len = strlen(with);
+	int len;
+	char **itr;
+	char *ret, *p;
+
+	len = 1; /* \0 */
+	for(itr = strs; *itr; itr++)
+		len += strlen(*itr) + with_len;
+
+	p = ret = umalloc(len);
+
+	for(itr = strs; *itr; itr++)
+		p += sprintf(p, "%s%s", *itr, itr[1] ? with : "");
+
+	return ret;
+}

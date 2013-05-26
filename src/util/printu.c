@@ -2,19 +2,20 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "util.h"
 #include "printu.h"
+#include "dynarray.h"
 
 #include "alloc.h"
 
-int vfprintu(FILE *f, const char *fmt, va_list l)
+static char *sprintu(const char *fmt, va_list l)
 {
+	char **join_us = NULL;
 	char *newfmt = ustrdup(fmt);
-	va_list l_cpy;
-	char *p;
-
-	va_copy(l_cpy, l);
+	char *p, *anchor = newfmt;
+	char *ret;
 
 	for(p = newfmt; *p; p++){
 		if(*p == '%'){
@@ -36,40 +37,64 @@ int vfprintu(FILE *f, const char *fmt, va_list l)
 			}
 
 			if(found){
-				const ptrdiff_t di = p - newfmt;
-				char *new;
+				char *up_to, *both;
 
-				p[-1] = '\0';
+				fprintf(stderr, "PRINTU: \"%s\"\n", found);
 
-				/* FIXME: can't pass through this va_arg to vfprintf below... */
+				*p = '\0';
+				/* eat up however many elements from l */
+				up_to = ustrvprintf(anchor, l);
 
-				new = ustrprintf("%s%s%s",
-						newfmt, found, p + 1);
-				free(newfmt);
-				newfmt = new;
-				p = newfmt + di;
-			}else{
-				/* need to step over it */
-				/* this is fine as long as we only pass scalars */
-				(void)va_arg(l, long);
+				both = ustrprintf("%s%s", up_to, found);
+
+				free(up_to);
+				dynarray_add(&join_us, both);
+
+				fprintf(stderr, "BOTH: \"%s\"\n", both);
+				anchor = p + 1;
+				fprintf(stderr, "ANCHOR: \"%s\"\n", anchor);
 			}
+			/* else ignore for now... */
 		}
 	}
 
-	{
-		int r = vfprintf(f, newfmt, l_cpy);
-		va_end(l_cpy);
-		free(newfmt);
-		return r;
-	}
+	if(anchor != p)
+		dynarray_add(&join_us, ustrvprintf(anchor, l));
+
+	ret = str_join(join_us, "");
+
+	dynarray_free(char **, &join_us, free);
+	free(newfmt);
+
+	return ret;
+}
+
+int vfprintu(FILE *f, const char *fmt, va_list l)
+{
+	char *s = sprintu(fmt, l);
+	size_t len = strlen(s);
+
+	fputs(s, f);
+
+	free(s);
+	return len;
 }
 
 int snprintu(char *buf, size_t len, const char *fmt, ...)
 {
-	*buf = '?',
-	buf[1] = '?',
-	buf[2] = 0;
-	return 2;
+	va_list l;
+	char *s;
+	size_t r;
+
+	va_start(l, fmt);
+	s = sprintu(fmt, l);
+	va_end(l);
+
+	r = snprintf(buf, len, "%s", s);
+
+	free(s);
+
+	return r;
 }
 
 int fprintu(FILE *f, const char *fmt, ...)
