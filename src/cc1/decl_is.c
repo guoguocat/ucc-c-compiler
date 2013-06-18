@@ -286,6 +286,15 @@ int type_ref_is_complete(type_ref *r)
 	return 1;
 }
 
+type_ref *type_ref_is_char_ar_or_ptr(type_ref *r)
+{
+	type_ref *try = type_ref_is_array(r);
+
+	return type_ref_is_type(
+			try ? try : type_ref_is_ptr(r),
+			type_char);
+}
+
 int type_ref_is_incomplete_array(type_ref *r)
 {
 	if((r = type_ref_is(r, type_ref_array)))
