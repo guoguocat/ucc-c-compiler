@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "../../util/util.h"
 #include "../../util/dynarray.h"
@@ -20,6 +21,7 @@
 #include "../gen_str.h"
 
 #include "../out/out.h"
+#include "../out/lbl.h"
 #include "__builtin_va.h"
 
 #define PREFIX "__builtin_"
@@ -317,9 +319,9 @@ static void builtin_memcpy_single(void)
 
 	/* ds */
 
-	out_swap(); // sd
-	out_dup();  // sdd
-	out_pulltop(2); // dds
+	out_swap();     /* sd */
+	out_dup();      /* sdd */
+	out_pulltop(2); /* dds */
 
 	out_dup();      /* ddss */
 	out_deref();    /* dds. */
@@ -359,6 +361,8 @@ static void builtin_gen_memcpy(expr *e)
 #else
 	/* TODO: backend rep movsb */
 	unsigned i = e->bits.iv.val;
+
+#ifdef MEMCPY_UNROLLED
 	type_ref *tptr = type_ref_new_ptr(
 				type_ref_cached_MAX_FOR(e->bits.iv.val),
 				qual_none);
@@ -386,6 +390,45 @@ static void builtin_gen_memcpy(expr *e)
 					qual_none);
 		}
 	}
+#else
+	char *lbl_start = out_label_code("builtin_memcpy_start"),
+	     *lbl_fin   = out_label_code("builtin_memcpy_fin");
+
+	out_comment("builtin memcpy start");
+
+	lea_expr(e->lhs); /* d */
+	out_change_type(type_ref_cached_CHAR_PTR());
+	lea_expr(e->rhs); /* ds */
+	out_change_type(type_ref_cached_CHAR_PTR());
+	out_push_i(type_ref_cached_ULONG(), i); /* dsz */
+
+	out_label(lbl_start);
+
+	out_dup(); /* dszz */
+	out_push_i(type_ref_cached_ULONG(), 0); /* dszz0 */
+	out_op(op_gt); /* dszC */
+	out_jfalse(lbl_fin); /* dsz */
+
+	out_push_i(type_ref_cached_ULONG(), 1); /* dsz1 */
+	out_op(op_minus); /* dsZ */
+
+	out_pulltop(2); /* sZd */
+	out_pulltop(2); /* Zds */
+
+	builtin_memcpy_single(); /* ZDS */
+	out_pulltop(2); /* DSZ -- unnecessary? */
+
+	out_push_lbl(lbl_start, 0);
+	out_jmp();
+
+	out_label(lbl_fin);
+	out_pop(); /* DS */
+
+	free(lbl_start);
+	free(lbl_fin);
+
+	out_comment("builtin memcpy fin");
+#endif
 
 	/* ds */
 	out_pop(); /* d */
