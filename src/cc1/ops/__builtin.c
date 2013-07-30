@@ -208,6 +208,8 @@ static void fold_memset(expr *e, symtable *stab)
 
 static void builtin_gen_memset(expr *e)
 {
+	/* XXX: note that this function may be called with a bitfield target */
+	/* TODO: generate call to libc memset if size > word size */
 	size_t n, rem;
 	unsigned i;
 	type_ref *tzero = type_ref_cached_MAX_FOR(e->bits.builtin_memset.len);
@@ -355,8 +357,8 @@ static void builtin_gen_memcpy(expr *e)
 
 	out_push_lbl("memcpy", 0);
 	out_push_i(type_ref_cached_INTPTR_T(), e->bits.iv.val);
-	lea_expr(e->rhs, stab);
-	lea_expr(e->lhs, stab);
+	lea_expr(e->rhs);
+	lea_expr(e->lhs);
 	out_call(3, e->tree_type, ctype);
 #else
 	/* TODO: backend rep movsb */
