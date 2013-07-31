@@ -344,6 +344,7 @@ static void builtin_memcpy_single(void)
 
 static void builtin_gen_memcpy(expr *e)
 {
+	TODO();
 #ifdef BUILTIN_USE_LIBC
 	/* TODO - also with memset */
 	funcargs *fargs = funcargs_new();
