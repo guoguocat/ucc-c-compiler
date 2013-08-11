@@ -18,6 +18,7 @@
 #include "preproc.h"
 #include "include.h"
 #include "directive.h"
+#include "str.h"
 
 #define FNAME_BUILTIN "<builtin>"
 #define FNAME_CMDLINE "<command-line>"
@@ -49,6 +50,7 @@ static const struct
 	{ "__DATE__",       NULL },
 	{ "__TIME__",       NULL },
 	{ "__TIMESTAMP__",  NULL },
+	{ "__BASE_FILE__",  NULL },
 
 	{ NULL,             NULL }
 };
@@ -59,6 +61,7 @@ int show_current_line = 1;
 int no_output = 0;
 
 char cpp_time[16], cpp_date[16], cpp_timestamp[64];
+char *cpp_basefile;
 
 char **cd_stack = NULL;
 
@@ -324,6 +327,7 @@ int main(int argc, char **argv)
 	}
 
 	current_fname = infname;
+	cpp_basefile = str_quote(current_fname, 0);
 
 	preprocess();
 
@@ -339,6 +343,7 @@ int main(int argc, char **argv)
 	}
 
 	free(dirname_pop());
+	free(cpp_basefile);
 
 	errno = 0;
 	fclose(stdout);

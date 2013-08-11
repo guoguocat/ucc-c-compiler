@@ -6,7 +6,7 @@ char *dirname_pop(void);
 
 extern char **cd_stack;
 
-extern char cpp_time[16], cpp_date[16], cpp_timestamp[64];
+extern char cpp_time[16], cpp_date[16], cpp_timestamp[64], *cpp_basefile;
 
 extern int option_line_info;
 

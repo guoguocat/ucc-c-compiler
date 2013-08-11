@@ -3,7 +3,7 @@ use warnings;
 
 sub usage
 {
-	die "Usage: $0 [-w] line1 line2... [< to_check]\n"
+	die "Usage: $0 [-w] [-s] line1 line2... [< to_check]\n"
 }
 
 sub trim
@@ -14,10 +14,16 @@ sub trim
 	return $s;
 }
 
-my $ign_whitespace = 0;
-if($ARGV[0] eq '-w'){
-	shift;
-	$ign_whitespace = 1;
+my($ign_whitespace, $substring) = (0, 0);
+for(my @tmp = @ARGV){
+	if($_ eq '-w'){
+		$ign_whitespace = 1;
+	}elsif($_ eq '-s'){
+		$substring = 1;
+	}else{
+		last;
+	}
+	shift @ARGV;
 }
 
 usage() unless @ARGV;
@@ -38,12 +44,16 @@ if(@output != @ARGV){
 }
 
 for(my $i = 0; $i < @output; ++$i){
-	my($a, $b) = ($output[$i], $ARGV[$i]);
+	my($line, $search) = ($output[$i], $ARGV[$i]);
 
 	if($ign_whitespace){
-		$a = trim($a);
-		$b = trim($b);
+		$line   = trim($line);
+		$search = trim($search);
 	}
 
-	die "mismatching lines [$i]: '$a' and '$b'\n" unless $a eq $b;
+
+	if(($substring ? index($line, $search) == -1 : not($search eq $line))){
+		die+($substring ? "no-substring in" : "mismatching")
+		. " lines [$i]: '$line' and '$search'\n"
+	}
 }
