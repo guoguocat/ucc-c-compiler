@@ -347,7 +347,7 @@ int main(int argc, char **argv)
 
 	return ret;
 usage:
-	fprintf(stderr, "Usage: %s [options] files...\n", *argv);
+	fprintf(stderr, "Usage: %s [options] in-file out-file\n", *argv);
 	fputs(" Options:\n"
 				"  -Idir: Add search directory\n"
 				"  -Dxyz[=abc]: Define xyz (to equal abc)\n"
