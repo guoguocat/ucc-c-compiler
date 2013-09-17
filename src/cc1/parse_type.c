@@ -260,7 +260,7 @@ static type_ref *parse_btype(
 	for(;;){
 		decl *tdef_decl_test;
 
-		if(curtok_is_type_qual()){
+	if(curtok_is_type_qual()){
 			qual |= curtok_to_type_qualifier();
 			EAT(curtok);
 

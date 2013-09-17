@@ -287,10 +287,11 @@ const char *type_qual_to_str(const enum type_qualifier qual, int trailing_space)
 {
 	static char buf[32];
 	/* trailing space is purposeful */
-	snprintf(buf, sizeof buf, "%s%s%s%s",
+	snprintf(buf, sizeof buf, "%s%s%s%s%s",
 		qual & qual_const    ? "const"    : "",
 		qual & qual_volatile ? "volatile" : "",
 		qual & qual_restrict ? "restrict" : "",
+		qual & qual_atomic   ? "atomic"   : "",
 		qual && trailing_space ? " " : "");
 	return buf;
 }

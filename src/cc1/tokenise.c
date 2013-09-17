@@ -93,6 +93,7 @@ struct statement
 	KEYWORD__(alignof, token__Alignof),
 	KEYWORD(_Alignas),
 	KEYWORD__(alignas, token__Alignas),
+	KEYWORD(_Atomic),
 
 	{ "__builtin_va_list", token___builtin_va_list },
 
