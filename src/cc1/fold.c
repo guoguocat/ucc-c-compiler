@@ -23,6 +23,8 @@
 #include "funcargs.h"
 #include "out/lbl.h"
 
+#include "stmt_ctx.h"
+
 decl     *curdecl_func;
 type_ref *curdecl_ref_func_called; /* for funcargs-local labels and return type-checking */
 int fold_had_error;
@@ -593,6 +595,20 @@ void fold_decl_global_init(decl *d, symtable *stab)
 	}
 }
 
+static void stmt_fctx_start(stmt_fold_ctx_function *fctx, basic_blk **bb_start, basic_blk **bb_end)
+{
+	*bb_start = bb_new("fn_start");
+	*bb_end   = bb_new("fn_end");
+
+	memset(fctx, 0, sizeof *fctx);
+	fctx->gotos = dynmap_new((dynmap_cmp_f *)strcmp);
+}
+
+static void stmt_fctx_free(stmt_fold_ctx_function *fctx)
+{
+	dynmap_free(fctx->gotos);
+}
+
 static void fold_func(decl *func_decl)
 {
 	if(func_decl->func_code){
@@ -630,7 +646,18 @@ static void fold_func(decl *func_decl)
 							i - arg_symtab->decls + 1, func_decl->spel);
 		}
 
-		fold_stmt(func_decl->func_code);
+		{
+			stmt_fold_ctx_function fctx;
+			stmt_fold_ctx_block bctx = { 0 };
+
+			basic_blk *b_start, *b_end;
+
+			bctx.func_ctx = &fctx;
+
+			stmt_fctx_start(&fctx, &b_start, &b_end);
+			fold_stmt(func_decl->func_code, &bctx);
+			stmt_fctx_free(&fctx);
+		}
 
 		/* now decls are folded, layout both parameters and local variables */
 		symtab_layout_decls(arg_symtab, 0);
@@ -796,7 +823,7 @@ void print_stab(symtable *st, int current, where *w)
 }
 #endif
 
-void fold_stmt(stmt *t)
+void fold_stmt(stmt *t, stmt_fold_ctx_block *ctx)
 {
 	UCC_ASSERT(t->symtab->parent, "symtab has no parent");
 
@@ -807,17 +834,17 @@ void fold_stmt(stmt *t)
 	}
 #endif
 
-	t->f_fold(t);
+	t->f_fold(t, ctx);
 }
 
-void fold_stmt_and_add_to_curswitch(stmt *t)
+void fold_stmt_and_add_to_curswitch(stmt *t, stmt_fold_ctx_block *ctx)
 {
-	fold_stmt(t->lhs); /* compound */
+	fold_stmt(t->lhs, ctx); /* compound */
 
-	if(!t->bits.parent)
+	if(!ctx->curswitch)
 		die_at(&t->where, "%s not inside switch", t->f_str());
 
-	dynarray_add(&t->bits.parent->bits.switch_cases, t);
+	dynarray_add(&ctx->curswitch->bits.switch_cases, t);
 
 	/* we are compound, copy some attributes */
 	t->kills_below_code = t->lhs->kills_below_code;

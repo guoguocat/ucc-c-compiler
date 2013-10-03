@@ -6,10 +6,14 @@ const char *str_stmt_label()
 	return "label";
 }
 
-void fold_stmt_label(stmt *s)
+void fold_stmt_label(stmt *s, stmt_fold_ctx_block *ctx)
 {
-	fold_stmt_goto(s);
-	fold_stmt(s->lhs); /* compound */
+	dynmap_set(
+			ctx->func_ctx->gotos,
+			s->bits.label,
+			bb_label);
+
+	fold_stmt(s->lhs, ctx); /* compound */
 }
 
 basic_blk *gen_stmt_label(stmt *s, basic_blk *bb)

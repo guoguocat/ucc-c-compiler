@@ -2,14 +2,16 @@
 #include "stmt_continue.h"
 #include "stmt_break.h"
 
+#include "../stmt_ctx.h"
+
 const char *str_stmt_continue()
 {
 	return "continue";
 }
 
-void fold_stmt_continue(stmt *t)
+void fold_stmt_continue(stmt *t, stmt_fold_ctx_block *ctx)
 {
-	fold_stmt_break_continue(t, t->parent ? t->parent->lbl_continue : NULL);
+	fold_stmt_break_continue(t, ctx->blk_continue);
 }
 
 void mutate_stmt_continue(stmt *s)

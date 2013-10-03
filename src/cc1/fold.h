@@ -15,7 +15,7 @@ void fold_check_restrict(expr *lhs, expr *rhs, const char *desc, where *w);
 
 void fold_funcargs(funcargs *fargs, symtable *stab, type_ref *from);
 
-void fold_stmt_and_add_to_curswitch(stmt *t);
+void fold_stmt_and_add_to_curswitch(stmt *t, stmt_fold_ctx_block *ctx);
 
 /* cast insertion */
 void fold_insert_casts(type_ref *tlhs, expr **prhs, symtable *stab);
@@ -47,7 +47,7 @@ void fold_expr(expr *e, symtable *stab);
 #define FOLD_EXPR(e, stab) ((e) = fold_expr_decay((e), (stab)))
 #define fold_expr_no_decay fold_expr
 
-void fold_stmt(stmt *t);
+void fold_stmt(stmt *t, stmt_fold_ctx_block *ctx);
 
 sym *fold_inc_writes_if_sym(expr *e, symtable *stab);
 

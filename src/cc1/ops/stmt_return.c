@@ -6,7 +6,7 @@ const char *str_stmt_return()
 	return "return";
 }
 
-void fold_stmt_return(stmt *s)
+void fold_stmt_return(stmt *s, stmt_fold_ctx_block *ctx)
 {
 	const int void_func = type_ref_is_void(curdecl_ref_func_called);
 

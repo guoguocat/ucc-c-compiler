@@ -2,8 +2,9 @@
 #define STAT_H
 
 struct basic_blk;
+typedef struct stmt_fold_ctx_block stmt_fold_ctx_block;
 
-typedef void func_fold_stmt(stmt *);
+typedef void func_fold_stmt(stmt *, stmt_fold_ctx_block *ctx) ucc_nonnull();
 typedef struct basic_blk *func_gen_stmt(stmt *, struct basic_blk *) ucc_wur;
 typedef const char *func_str_stmt(void);
 typedef void func_mutate_stmt(stmt *);
@@ -30,10 +31,16 @@ struct stmt
 	/* specific data */
 	struct
 	{
-		int val; /* case */
 		stmt **codes; /* for a code block */
-		stmt *parent; /* break, continue, default and case */
-		stmt **switch_cases;
+		basic_blk *blk_jmp; /* break, continue */
+		stmt **switch_cases; /* duh */
+		int is_default; /* case, default */
+		char *label;
+		struct
+		{
+			char *lbl;
+			basic_blk *blk;
+		} goto_;
 	} bits;
 
 	int expr_no_pop; /* given to the last stmt in ({...}) */

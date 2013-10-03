@@ -1337,9 +1337,6 @@ basic_blk *out_func_prologue(
 		int stack_res, int nargs, int variadic,
 		int arg_offsets[])
 {
-	struct out *ostate = out_state_new();
-	basic_blk *bb = bb_new(ostate, spel);
-
 	UCC_ASSERT(bb->ostate->stack_sz == 0, "non-empty stack for new func");
 
 	impl_func_prologue_save_fp(bb);

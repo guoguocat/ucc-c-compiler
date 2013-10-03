@@ -2,27 +2,24 @@
 
 #include "ops.h"
 #include "stmt_break.h"
+#include "../stmt_ctx.h"
 
 const char *str_stmt_break()
 {
 	return "break";
 }
 
-void fold_stmt_break_continue(stmt *t, char *lbl)
+void fold_stmt_break_continue(stmt *t, basic_blk *jmp)
 {
-	if(!lbl)
+	if(!jmp)
 		die_at(&t->where, "%s outside a flow-control statement", t->f_str());
 
-	t->expr = expr_new_identifier(lbl);
-	memcpy_safe(&t->expr->where, &t->where);
-
-	t->expr->tree_type = type_ref_cached_VOID();
+	t->bits.blk_jmp = jmp;
 }
 
-void fold_stmt_break(stmt *t)
+void fold_stmt_break(stmt *t, stmt_fold_ctx_block *ctx)
 {
-	fold_stmt_break_continue(t,
-			t->bits.parent ? t->bits.parent->lbl_break : NULL);
+	fold_stmt_break_continue(t, ctx->blk_break);
 }
 
 void mutate_stmt_break(stmt *s)

@@ -5,22 +5,28 @@
 #include "stmt_for.h"
 #include "stmt_code.h"
 #include "../out/lbl.h"
-#include "../out/basic_block/bb.h"
+#include "../basic_blk/bb.h"
 #include "../decl_init.h"
+
+#include "../stmt_ctx.h"
 
 const char *str_stmt_for()
 {
 	return "for";
 }
 
-void fold_stmt_for(stmt *s)
+void fold_stmt_for(stmt *s, stmt_fold_ctx_block *ctx_parent)
 {
 	symtable *stab = NULL;
+	stmt_fold_ctx_block ctx = { 0 };
+
+	STMT_CTX_NEST(ctx, ctx_parent);
+
 	flow_fold(s->flow, &stab);
 	UCC_ASSERT(stab, "fold_flow in for didn't pick up .flow");
 
-	s->lbl_break    = out_label_flow("for_start");
-	s->lbl_continue = out_label_flow("for_contiune");
+	ctx.blk_break = bb_new("for_brk");
+	ctx.blk_continue = bb_new("for_cntu");
 
 #define FOLD_IF(x) if(x) FOLD_EXPR(x, stab)
 	FOLD_IF(s->flow->for_init);
@@ -34,7 +40,7 @@ void fold_stmt_for(stmt *s)
 				FOLD_CHK_NO_ST_UN | FOLD_CHK_BOOL,
 				"for-while");
 
-	fold_stmt(s->lhs);
+	fold_stmt(s->lhs, &ctx);
 }
 
 basic_blk *gen_stmt_for(stmt *s, basic_blk *bb)

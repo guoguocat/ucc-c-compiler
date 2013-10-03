@@ -5,7 +5,7 @@
 
 #define N_VSTACK 32
 
-basic_blk *bb_new(struct out *, char *label);
+basic_blk *bb_new(char *label);
 basic_blk *bb_new_from(basic_blk *, char *label);
 
 basic_blk *bb_phi_next(basic_blk_phi *);

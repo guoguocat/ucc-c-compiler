@@ -136,7 +136,7 @@ ret:
 	free(marks);
 }
 
-void fold_stmt_switch(stmt *s)
+void fold_stmt_switch(stmt *s, stmt_fold_ctx_block *ctx)
 {
 	symtable *stab = s->symtab;
 

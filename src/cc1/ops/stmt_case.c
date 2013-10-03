@@ -9,17 +9,12 @@ const char *str_stmt_case()
 	return "case";
 }
 
-void fold_stmt_case(stmt *t)
+void fold_stmt_case(stmt *t, stmt_fold_ctx_block *ctx)
 {
-	integral_t val;
-
 	FOLD_EXPR(t->expr, t->symtab);
 	fold_check_expr(t->expr, FOLD_CHK_INTEGRAL | FOLD_CHK_CONST_I, "case");
-	val = const_fold_val_i(t->expr);
 
-	t->expr->bits.ident.spel = out_label_case(CASE_CASE, val);
-
-	fold_stmt_and_add_to_curswitch(t);
+	fold_stmt_and_add_to_curswitch(t, ctx);
 }
 
 void mutate_stmt_case(stmt *s)

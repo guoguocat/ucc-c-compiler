@@ -3,19 +3,26 @@
 #include "ops.h"
 #include "stmt_expr.h"
 
-#include "../out/basic_block/bb.h"
+#include "../basic_blk/bb.h"
 
 const char *str_stmt_expr()
 {
 	return "expr";
 }
 
-void fold_stmt_expr(stmt *s)
+void fold_stmt_expr(stmt *s, stmt_fold_ctx_block *ctx)
 {
+	(void)ctx; /* ignored, sub-code creates a fresh one */
+
 	FOLD_EXPR(s->expr, s->symtab);
-	if(!s->freestanding && !s->expr->freestanding && !type_ref_is_void(s->expr->tree_type))
+
+	if(!s->freestanding
+	&& !s->expr->freestanding
+	&& !type_ref_is_void(s->expr->tree_type))
+	{
 		cc1_warn_at(&s->expr->where, 0, WARN_UNUSED_EXPR,
 				"unused expression (%s)", s->expr->f_str());
+	}
 }
 
 basic_blk *gen_stmt_expr(stmt *s, basic_blk *bb)

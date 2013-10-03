@@ -41,7 +41,7 @@ typedef struct consty
 #define K_FLOATING(num) !!((num).suffix & VAL_FLOATING)
 #define K_INTEGRAL(num) !K_FLOATING(num)
 
-#include "out/basic_block/tdefs.h"
+#include "basic_blk/tdefs.h"
 
 typedef void         func_fold(          expr *, symtable *);
 typedef basic_blk   *func_gen(           expr *, basic_blk *) ucc_wur;
@@ -76,7 +76,6 @@ struct expr
 	int assign_is_post;
 	int assign_is_init;
 #define expr_is_default    assign_is_post
-#define expr_computed_goto assign_is_post
 #define expr_cast_implicit assign_is_post
 #define expr_is_st_dot     assign_is_post
 #define expr_addr_implicit assign_is_post

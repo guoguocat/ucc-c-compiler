@@ -863,7 +863,8 @@ stmt *parse_stmt()
 					t->expr = parse_expr_exp();
 					t->expr->expr_computed_goto = 1;
 				}else{
-					t->expr = parse_expr_identifier();
+					t->bits.goto_lbl = token_current_spel();
+					EAT(token_identifier);
 				}
 			}
 			EAT(token_semicolon);

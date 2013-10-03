@@ -14,7 +14,7 @@ void fold_expr_block(expr *e, symtable *stab)
 	e->code->symtab->parent = symtab_root(e->code->symtab);
 
 	UCC_ASSERT(stmt_kind(e->code, code), "!code for block");
-	fold_stmt(e->code);
+	fold_stmt(e->code, NULL); /* fresh ctx */
 
 	/*
 	 * TODO:

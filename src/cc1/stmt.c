@@ -21,6 +21,8 @@ void stmt_mutate(stmt *s,
 		func_str_stmt *f_str,
 		func_mutate_stmt *f_mutate)
 {
+	memset(&s->bits, 0, sizeof s->bits);
+
 	s->f_fold = f_fold;
 
 	switch(cc1_backend){

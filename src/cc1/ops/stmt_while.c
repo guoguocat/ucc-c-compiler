@@ -11,7 +11,7 @@ const char *str_stmt_while()
 	return "while";
 }
 
-void fold_stmt_while(stmt *s)
+void fold_stmt_while(stmt *s, stmt_fold_ctx_block *ctx)
 {
 	symtable *stab = s->symtab;
 

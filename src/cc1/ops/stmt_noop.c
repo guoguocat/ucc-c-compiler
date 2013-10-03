@@ -6,7 +6,7 @@ const char *str_stmt_noop()
 	return "noop";
 }
 
-void fold_stmt_noop(stmt *s)
+void fold_stmt_noop(stmt *s, stmt_fold_ctx_block *ctx)
 {
 	(void)s;
 }

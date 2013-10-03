@@ -1,18 +1,23 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../../util/dynarray.h"
+#include "../../util/dynmap.h"
+
 #include "ops.h"
 #include "stmt_code.h"
 #include "../decl_init.h"
-#include "../../util/dynarray.h"
 #include "../fold_sym.h"
+
+#include "../basic_blk/bb.h"
+#include "../stmt_ctx.h"
 
 const char *str_stmt_code()
 {
 	return "code";
 }
 
-void fold_stmt_code(stmt *s)
+void fold_stmt_code(stmt *s, stmt_fold_ctx_block *ctx)
 {
 	stmt **siter;
 	decl **diter;
@@ -46,12 +51,12 @@ void fold_stmt_code(stmt *s)
 	}
 
 	if(init_blk)
-		dynarray_prepend(&s->codes, init_blk);
+		dynarray_prepend(&s->bits.codes, init_blk);
 
-	for(siter = s->codes; siter && *siter; siter++){
+	for(siter = s->bits.codes; siter && *siter; siter++){
 		stmt *const st = *siter;
 
-		EOF_WHERE(&st->where, fold_stmt(st));
+		EOF_WHERE(&st->where, fold_stmt(st, ctx));
 
 		/*
 		 * check for dead code
@@ -108,7 +113,7 @@ basic_blk *gen_stmt_code(stmt *s, basic_blk *bb)
 	/* stmt_for/if/while/do needs to do this too */
 	gen_code_decls(s->symtab);
 
-	for(titer = s->codes; titer && *titer; titer++)
+	for(titer = s->bits.codes; titer && *titer; titer++)
 		bb = gen_stmt(*titer, bb);
 
 	return bb;
@@ -124,7 +129,7 @@ basic_blk *style_stmt_code(stmt *s, basic_blk *bb)
 	for(i_d = s->symtab->decls; i_d && *i_d; i_d++)
 		gen_style_decl(*i_d);
 
-	for(i_s = s->codes; i_s && *i_s; i_s++)
+	for(i_s = s->bits.codes; i_s && *i_s; i_s++)
 		bb = gen_stmt(*i_s, bb);
 
 	stylef("\n}\n");
@@ -138,7 +143,7 @@ static int code_passable(stmt *s)
 
 	/* note: this also checks for inits which call noreturn funcs */
 
-	for(i = s->codes; i && *i; i++){
+	for(i = s->bits.codes; i && *i; i++){
 		stmt *sub = *i;
 		if(!fold_passable(sub))
 			return 0;

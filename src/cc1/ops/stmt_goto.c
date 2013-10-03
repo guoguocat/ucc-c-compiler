@@ -4,33 +4,33 @@
 #include "stmt_goto.h"
 #include "../out/lbl.h"
 
+#include "../stmt_ctx.h"
+#include "../../util/dynmap.h"
+
 const char *str_stmt_goto()
 {
 	return "goto";
 }
 
-void fold_stmt_goto(stmt *s)
+void fold_stmt_goto(stmt *s, stmt_fold_ctx_block *ctx)
 {
-	if(s->expr->expr_computed_goto){
+	if(s->expr){
 		FOLD_EXPR(s->expr, s->symtab);
 	}else{
-		char *save, **psp;
+		basic_blk *target = dynmap_get(
+				char *, basic_blk *,
+				ctx->func_ctx->gotos, s->bits.goto_.lbl);
 
-		if(!expr_kind(s->expr, identifier))
-			die_at(&s->expr->where, "not a label identifier");
+		if(!target)
+			die_at(&s->where, "goto label \"%s\" not found", s->bits.goto_.lbl);
 
-		save = *(psp = &s->expr->bits.ident.spel);
-		/* else let the assembler check for link errors */
-		if(!curdecl_func)
-			die_at(&s->where, "goto outside of a function");
-		*psp = out_label_goto(curdecl_func->spel, save);
-		free(save);
+		s->bits.goto_.blk = target;
 	}
 }
 
 basic_blk *gen_stmt_goto(stmt *s, basic_blk *bb)
 {
-	if(s->expr->expr_computed_goto)
+	if(s->expr)
 		bb = gen_expr(s->expr, bb);
 	else
 		out_push_lbl(bb, s->expr->bits.ident.spel, 0);
@@ -44,7 +44,7 @@ basic_blk *style_stmt_goto(stmt *s, basic_blk *bb)
 {
 	stylef("goto ");
 
-	if(s->expr->expr_computed_goto){
+	if(s->expr){
 		stylef("*");
 		bb = gen_expr(s->expr, bb);
 	}else{

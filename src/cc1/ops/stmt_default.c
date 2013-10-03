@@ -9,16 +9,10 @@ const char *str_stmt_default()
 	return "default";
 }
 
-void fold_stmt_default(stmt *s)
+void fold_stmt_default(stmt *s, stmt_fold_ctx_block *ctx)
 {
-	char *lbl = out_label_case(CASE_DEF, 0);
-
-	s->expr = expr_new_identifier(lbl);
-	memcpy_safe(&s->expr->where, &s->where);
-
-	s->expr->expr_is_default = 1;
-
-	fold_stmt_and_add_to_curswitch(s);
+	s->bits.is_default = 1;
+	fold_stmt_and_add_to_curswitch(s, ctx);
 }
 
 void mutate_stmt_default(stmt *s)

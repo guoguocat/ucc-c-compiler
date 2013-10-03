@@ -3,16 +3,16 @@
 #include "ops.h"
 #include "stmt_do.h"
 #include "../out/lbl.h"
-#include "../out/basic_block/bb.h"
+#include "../basic_blk/bb.h"
 
 const char *str_stmt_do()
 {
 	return "do";
 }
 
-void fold_stmt_do(stmt *s)
+void fold_stmt_do(stmt *s, stmt_fold_ctx_block *ctx)
 {
-	fold_stmt_while(s);
+	fold_stmt_while(s, ctx);
 }
 
 basic_blk *gen_stmt_do(stmt *s, basic_blk *bb)

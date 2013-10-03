@@ -93,7 +93,6 @@ void gen_asm_global(decl *d)
 		decl **aiter;
 		int *offsets;
 		symtable *arg_symtab;
-		struct basic_blk *bb_start, *bb_end;
 
 		if(!d->func_code)
 			return;
