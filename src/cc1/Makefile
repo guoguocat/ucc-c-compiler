@@ -24,7 +24,7 @@ OBJ_SRC = \
 	sym.o sue.o ops/__builtin.o ops/__builtin_va.o pack.o \
 	gen_asm.o gen_str.o gen_style.o \
 	out/out.o out/asm.o out/lbl.o out/impl.o out/out_state.o \
-	out/basic_block/bb.o out/basic_block/flush.o \
+	basic_blk/bb.o basic_blk/flush.o \
 	ops/expr_addr.o ops/expr_assign.o ops/expr_cast.o ops/expr_comma.o \
 	ops/expr_funcall.o ops/expr_identifier.o ops/expr_if.o ops/expr_op.o \
 	ops/expr_sizeof.o ops/expr_val.o ops/expr_stmt.o ops/expr__Generic.o \
@@ -76,6 +76,6 @@ Makefile.dep:
 	${CC} ${CPPFLAGS} -MM *.c > $@
 	${CC} ${CPPFLAGS} -MM ops/*.c | sed 's#^\([^ ]\)#ops/\1#' >> $@
 	${CC} ${CPPFLAGS} -MM out/*.c | sed 's#^\([^ ]\)#out/\1#' >> $@
-	${CC} ${CPPFLAGS} -MM out/basic_block/*.c | sed 's#^\([^ ]\)#out/basic_block/\1#' >> $@
+	${CC} ${CPPFLAGS} -MM basic_blk/*.c | sed 's#^\([^ ]\)#basic_blk/\1#' >> $@
 
 include Makefile.dep
