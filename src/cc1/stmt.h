@@ -28,19 +28,20 @@ struct stmt
 	stmt_flow *flow; /* for, switch (do and while are simple enough for ->[lr]hs) */
 
 	/* specific data */
-	int val;
-	char *lbl_break, *lbl_continue;
+	struct
+	{
+		int val; /* case */
+		stmt **codes; /* for a code block */
+		stmt *parent; /* break, continue, default and case */
+		stmt **switch_cases;
+	} bits;
+
+	int expr_no_pop; /* given to the last stmt in ({...}) */
 
 	int freestanding;     /* if this is freestanding, non-freestanding expressions inside are allowed */
 	int kills_below_code; /* break, return, etc - for checking dead code */
-	int expr_no_pop;
-
-	stmt **codes; /* for a code block */
 
 	symtable *symtab; /* block definitions, e.g. { int i... } */
-
-	/* parents - applicable for break and continue */
-	stmt *parent;
 };
 
 struct stmt_flow

@@ -708,11 +708,11 @@ static stmt *parse_stmt_and_decls(void)
 			parse_static_assert();
 			if(curtok == token_close_block || (at_decl = parse_at_decl()))
 				break;
-			dynarray_add(&code_stmt->codes, parse_stmt());
+			dynarray_add(&code_stmt->bits.codes, parse_stmt());
 		}
 
 		if(at_decl){
-			if(code_stmt->codes){
+			if(code_stmt->bits.codes){
 				stmt *nest = parse_stmt_and_decls();
 
 				if(cc1_std < STD_C99){
@@ -727,7 +727,7 @@ static stmt *parse_stmt_and_decls(void)
 				/* mark as internal - for duplicate checks */
 				nest->symtab->internal_nest = 1;
 
-				dynarray_add(&code_stmt->codes, nest);
+				dynarray_add(&code_stmt->bits.codes, nest);
 			}else{
 				ICE("got another decl - should've been handled already");
 			}
@@ -765,27 +765,29 @@ void print_stmt_and_decls(stmt *t)
 	if(!t->decls)
 		print_indent++, INDENT("NONE\n"), print_indent--;
 
-	INDENT("codes:\n");
-	for(stmt **i = t->codes; i && *i; i++){
-		stmt *s = *i;
-		if(stmt_kind(s, code)){
-			print_indent++;
-			INDENT("more-codes:\n");
-			print_indent++;
-			print_stmt_and_decls(s);
-			print_indent -= 2;
-		}else{
-			print_indent++;
-			INDENT("%s%s%s (symtab %p)\n",
-					s->f_str(),
-					stmt_kind(s, expr) ? ": " : "",
-					stmt_kind(s, expr) ? s->expr->f_str() : "",
-					s->symtab);
-			print_indent--;
+	if(stmt_kind(t, code)){
+		INDENT("codes:\n");
+		for(stmt **i = t->bits.codes; i && *i; i++){
+			stmt *s = *i;
+			if(stmt_kind(s, code)){
+				print_indent++;
+				INDENT("more-codes:\n");
+				print_indent++;
+				print_stmt_and_decls(s);
+				print_indent -= 2;
+			}else{
+				print_indent++;
+				INDENT("%s%s%s (symtab %p)\n",
+						s->f_str(),
+						stmt_kind(s, expr) ? ": " : "",
+						stmt_kind(s, expr) ? s->expr->f_str() : "",
+						s->symtab);
+				print_indent--;
+			}
 		}
+		if(!t->bits.codes)
+			print_indent++, INDENT("NONE\n"), print_indent--;
 	}
-	if(!t->codes)
-		print_indent++, INDENT("NONE\n"), print_indent--;
 }
 #endif
 
@@ -840,11 +842,11 @@ stmt *parse_stmt()
 		{
 			if(accept(token_break)){
 				t = STAT_NEW(break);
-				t->parent = current_break_target;
+				t->bits.parent = current_break_target;
 
 			}else if(accept(token_continue)){
 				t = STAT_NEW(continue);
-				t->parent = current_continue_target;
+				t->bits.parent = current_continue_target;
 
 			}else if(accept(token_return)){
 				t = STAT_NEW(return);
@@ -906,7 +908,7 @@ flow:
 			EAT(token_default);
 			EAT(token_colon);
 			t = STAT_NEW(default);
-			t->parent = current_switch;
+			t->bits.parent = current_switch;
 			return parse_label_next(t);
 		case token_case:
 		{
@@ -915,13 +917,13 @@ flow:
 			a = parse_expr_exp();
 			if(accept(token_elipsis)){
 				t = STAT_NEW(case_range);
-				t->parent = current_switch;
+				t->bits.parent = current_switch;
 				t->expr  = a;
 				t->expr2 = parse_expr_exp();
 			}else{
 				t = STAT_NEW(case);
 				t->expr = a;
-				t->parent = current_switch;
+				t->bits.parent = current_switch;
 			}
 
 			EAT(token_colon);

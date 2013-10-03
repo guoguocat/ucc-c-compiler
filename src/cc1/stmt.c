@@ -89,10 +89,10 @@ static void stmt_walk2(stmt *base, stmt_walk_enter enter, stmt_walk_leave leave,
 	WALK_IF(base->lhs);
 	WALK_IF(base->rhs);
 
-	if(base->codes){
-		int i;
-		for(i = 0; base->codes[i]; i++){
-			stmt_walk2(base->codes[i], enter, leave, data, stop);
+	if(stmt_kind(base, code) && base->bits.codes){
+		stmt **i;
+		for(i = base->bits.codes; *i; i++){
+			stmt_walk2(*i, enter, leave, data, stop);
 			if(*stop)
 				break;
 		}

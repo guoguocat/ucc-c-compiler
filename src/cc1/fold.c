@@ -814,10 +814,10 @@ void fold_stmt_and_add_to_curswitch(stmt *t)
 {
 	fold_stmt(t->lhs); /* compound */
 
-	if(!t->parent)
+	if(!t->bits.parent)
 		die_at(&t->where, "%s not inside switch", t->f_str());
 
-	dynarray_add(&t->parent->codes, t);
+	dynarray_add(&t->bits.parent->bits.switch_cases, t);
 
 	/* we are compound, copy some attributes */
 	t->kills_below_code = t->lhs->kills_below_code;

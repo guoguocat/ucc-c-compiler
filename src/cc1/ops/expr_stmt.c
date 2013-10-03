@@ -14,9 +14,9 @@ void fold_expr_stmt(expr *e, symtable *stab)
 
 	(void)stab;
 
-	last = dynarray_count(e->code->codes);
+	last = dynarray_count(e->code->bits.codes);
 	if(last){
-		last_stmt = e->code->codes[last - 1];
+		last_stmt = e->code->bits.codes[last - 1];
 		last_stmt->freestanding = 1; /* allow the final to be freestanding */
 		last_stmt->expr_no_pop = 1;
 	}
@@ -42,8 +42,8 @@ basic_blk *gen_expr_stmt(expr *e, basic_blk *bb)
 	 * on the stack for it
 	 */
 	{
-		int n = dynarray_count(e->code->codes);
-		if(n > 0 && !stmt_kind(e->code->codes[n-1], expr))
+		int n = dynarray_count(e->code->bits.codes);
+		if(n > 0 && !stmt_kind(e->code->bits.codes[n-1], expr))
 			out_push_noop(bb);
 	}
 

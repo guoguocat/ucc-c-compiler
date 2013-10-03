@@ -484,34 +484,36 @@ void print_stmt(stmt *t)
 		gen_str_indent--;
 	}
 
-	if(stmt_kind(t, code) && t->symtab){
-		decl **iter;
+	if(stmt_kind(t, code)){
+		if(t->symtab){
+			decl **iter;
 
-		idt_printf("stack space %d\n", t->symtab->auto_total_size);
-		idt_printf("decls:\n");
+			idt_printf("stack space %d\n", t->symtab->auto_total_size);
+			idt_printf("decls:\n");
 
-		for(iter = t->symtab->decls; iter && *iter; iter++){
-			decl *d = *iter;
+			for(iter = t->symtab->decls; iter && *iter; iter++){
+				decl *d = *iter;
 
-			gen_str_indent++;
-			print_decl(d, PDECL_INDENT
-					| PDECL_NEWLINE
-					| PDECL_SYM_OFFSET
-					| PDECL_ATTR
-					| PDECL_PINIT);
-			gen_str_indent--;
+				gen_str_indent++;
+				print_decl(d, PDECL_INDENT
+						| PDECL_NEWLINE
+						| PDECL_SYM_OFFSET
+						| PDECL_ATTR
+						| PDECL_PINIT);
+				gen_str_indent--;
+			}
 		}
-	}
 
-	if(t->codes){
-		stmt **iter;
+		if(t->bits.codes){
+			stmt **iter;
 
-		idt_printf("code:\n");
+			idt_printf("code:\n");
 
-		for(iter = t->codes; *iter; iter++){
-			gen_str_indent++;
-			print_stmt(*iter);
-			gen_str_indent--;
+			for(iter = t->bits.codes; *iter; iter++){
+				gen_str_indent++;
+				print_stmt(*iter);
+				gen_str_indent--;
+			}
 		}
 	}
 }
