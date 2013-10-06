@@ -1337,6 +1337,8 @@ void out_func_prologue(
 		int stack_res, int nargs, int variadic,
 		int arg_offsets[])
 {
+	bb->ostate = out_state_new(); /* XXX FIXME: temporary fix */
+
 	UCC_ASSERT(bb->ostate->stack_sz == 0, "non-empty stack for new func");
 
 	impl_func_prologue_save_fp(bb);
