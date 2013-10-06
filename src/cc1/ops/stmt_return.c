@@ -1,6 +1,9 @@
 #include "ops.h"
 #include "stmt_return.h"
 
+#include "../stmt_ctx.h"
+#include "../basic_blk/bb.h"
+
 const char *str_stmt_return()
 {
 	return "return";
@@ -31,6 +34,8 @@ void fold_stmt_return(stmt *s, stmt_fold_ctx_block *ctx)
 				curdecl_func->spel);
 
 	}
+
+	s->exit = ctx->func_ctx->blk_return;
 }
 
 basic_blk *gen_stmt_return(stmt *s, basic_blk *bb)
@@ -40,9 +45,7 @@ basic_blk *gen_stmt_return(stmt *s, basic_blk *bb)
 		out_pop_func_ret(bb, s->expr->tree_type);
 		out_comment(bb, "return");
 	}
-	//out_push_lbl(bb, curfunc_lblfin, 0);
-	//out_jmp(bb);
-	ICE("TODO: return");
+	bb_link_forward(bb, s->exit);
 	return bb;
 }
 
