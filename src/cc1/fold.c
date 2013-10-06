@@ -837,6 +837,8 @@ void fold_stmt(stmt *t, stmt_fold_ctx_block *ctx)
 #endif
 
 	t->f_fold(t, ctx);
+
+	UCC_ASSERT(t->entry && t->exit, "no entry/exit for %s", t->f_str());
 }
 
 void fold_stmt_and_add_to_curswitch(stmt *t, stmt_fold_ctx_block *ctx)
