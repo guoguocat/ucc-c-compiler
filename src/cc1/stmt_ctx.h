@@ -20,6 +20,6 @@ struct stmt_fold_ctx_block
 
 /* child is a value, parent, pointer. type checking, yo */
 #define STMT_CTX_NEST(child, parent) \
-	child.func_ctx = parent->func_ctx;
+	child = *parent
 
 #endif

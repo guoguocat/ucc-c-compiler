@@ -7,7 +7,7 @@
 
 #include "../data_structs.h"
 
-#include "basic_block/bb.h"
+#include "../basic_blk/bb.h"
 #include "vstack.h"
 #include "asm.h"
 #include "impl.h" /* reg counts, etc */

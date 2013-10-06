@@ -43,13 +43,6 @@ symtable *current_scope;
 /* sometimes we can carry on after an error, but we don't want to go through to compilation etc */
 int parse_had_error = 0;
 
-
-/* switch, for, do and while linkage */
-static stmt *current_continue_target,
-						*current_break_target,
-						*current_switch;
-
-
 expr *parse_expr_sizeof_typeof_alignof(enum what_of what_of)
 {
 	expr *e;
@@ -561,19 +554,12 @@ static stmt *parse_if()
 static stmt *parse_switch()
 {
 	stmt *t = STAT_NEW(switch);
-	stmt *old = current_break_target;
-	stmt *old_sw = current_switch;
-
-	current_switch = current_break_target = t;
 
 	EAT(token_switch);
 
 	parse_test_init_expr(t);
 
 	t->lhs = parse_stmt();
-
-	current_break_target = old;
-	current_switch = old_sw;
 
 	STMT_SCOPE_RECOVER(t);
 
@@ -583,8 +569,6 @@ static stmt *parse_switch()
 static stmt *parse_do()
 {
 	stmt *t = STAT_NEW(do);
-
-	current_continue_target = current_break_target = t;
 
 	EAT(token_do);
 
@@ -603,8 +587,6 @@ static stmt *parse_while()
 {
 	stmt *t = STAT_NEW(while);
 
-	current_continue_target = current_break_target = t;
-
 	EAT(token_while);
 
 	parse_test_init_expr(t);
@@ -620,8 +602,6 @@ static stmt *parse_for()
 {
 	stmt *s = STAT_NEW(for);
 	stmt_flow *sf;
-
-	current_continue_target = current_break_target = s;
 
 	EAT(token_for);
 	EAT(token_open_paren);
@@ -842,11 +822,9 @@ stmt *parse_stmt()
 		{
 			if(accept(token_break)){
 				t = STAT_NEW(break);
-				t->bits.parent = current_break_target;
 
 			}else if(accept(token_continue)){
 				t = STAT_NEW(continue);
-				t->bits.parent = current_continue_target;
 
 			}else if(accept(token_return)){
 				t = STAT_NEW(return);
@@ -861,9 +839,8 @@ stmt *parse_stmt()
 				if(accept(token_multiply)){
 					/* computed goto */
 					t->expr = parse_expr_exp();
-					t->expr->expr_computed_goto = 1;
 				}else{
-					t->bits.goto_lbl = token_current_spel();
+					t->bits.goto_.lbl = token_current_spel();
 					EAT(token_identifier);
 				}
 			}
@@ -874,33 +851,17 @@ stmt *parse_stmt()
 		case token_if:
 			return parse_if();
 
-		{
-			stmt *(*parse_f)();
-			stmt *ret, *old[2];
-
 		case token_while:
-			parse_f = parse_while;
-			goto flow;
+			return parse_while();
+
 		case token_do:
-			parse_f = parse_do;
-			goto flow;
+			return parse_do();
+
 		case token_for:
-			parse_f = parse_for;
-			goto flow;
+			return parse_for();
 
-flow:
-			old[0] = current_continue_target;
-			old[1] = current_break_target;
-
-			ret = parse_f();
-
-			current_continue_target = old[0];
-			current_break_target    = old[1];
-
-			return ret;
-		}
-
-		case token_open_block: return parse_stmt_block();
+		case token_open_block:
+			return parse_stmt_block();
 
 		case token_switch:
 			return parse_switch();
@@ -909,7 +870,6 @@ flow:
 			EAT(token_default);
 			EAT(token_colon);
 			t = STAT_NEW(default);
-			t->bits.parent = current_switch;
 			return parse_label_next(t);
 		case token_case:
 		{
@@ -918,14 +878,11 @@ flow:
 			a = parse_expr_exp();
 			if(accept(token_elipsis)){
 				t = STAT_NEW(case_range);
-				t->bits.parent = current_switch;
-				t->expr  = a;
 				t->expr2 = parse_expr_exp();
 			}else{
 				t = STAT_NEW(case);
-				t->expr = a;
-				t->bits.parent = current_switch;
 			}
+			t->expr = a;
 
 			EAT(token_colon);
 			return parse_label_next(t);

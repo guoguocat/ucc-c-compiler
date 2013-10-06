@@ -22,7 +22,7 @@ void fold_stmt_for(stmt *s, stmt_fold_ctx_block *ctx_parent)
 
 	STMT_CTX_NEST(ctx, ctx_parent);
 
-	flow_fold(s->flow, &stab);
+	flow_fold(s->flow, &stab, &ctx);
 	UCC_ASSERT(stab, "fold_flow in for didn't pick up .flow");
 
 	ctx.blk_break = bb_new("for_brk");

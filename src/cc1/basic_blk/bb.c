@@ -3,31 +3,32 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "../../../util/where.h"
-#include "../../../util/alloc.h"
-#include "../../../util/assert.h"
-#include "../../../util/dynarray.h"
+#include "../../util/where.h"
+#include "../../util/alloc.h"
+#include "../../util/assert.h"
+#include "../../util/dynarray.h"
 
-#include "../../data_structs.h"
-#include "../../type_ref.h"
+#include "../data_structs.h"
+#include "../type_ref.h"
 
-#include "../vstack.h"
+#include "../out/vstack.h"
 #include "bb.h"
 #include "io.h"
 #include "defs.h"
 
-#include "../out.h" /* needed for fork/phi ops */
-#include "../lbl.h"
-#include "../impl_flow.h" /* impl_{jmp,lbl} */
+#include "../out/out.h" /* needed for fork/phi ops */
+#include "../out/lbl.h"
+#include "../out/impl_flow.h" /* impl_{jmp,lbl} */
 
 
-basic_blk *bb_new(struct out *os, char *label)
+basic_blk *bb_new(char *label)
 {
 	basic_blk *bb = umalloc(sizeof *bb);
 	bb->type = bb_norm;
 	bb->lbl = out_label_code(label);
-	UCC_ASSERT(os, "null out-state for basic block");
-	bb->ostate = os;
+
+	//UCC_ASSERT(os, "null out-state for basic block");
+	//bb->ostate = os;
 
 	bb->vbuf = umalloc(sizeof *bb->vbuf * N_VSTACK);
 
@@ -36,7 +37,7 @@ basic_blk *bb_new(struct out *os, char *label)
 
 basic_blk *bb_new_from(basic_blk *bb, char *label)
 {
-	return bb_new(bb->ostate, label);
+	return bb_new(/*bb->ostate, */label);
 }
 
 static basic_blk_phi *bb_new_phi(struct out *os)

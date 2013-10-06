@@ -1,6 +1,10 @@
 #include "ops.h"
 #include "stmt_label.h"
 
+#include "../../util/dynmap.h"
+#include "../basic_blk/bb.h"
+#include "../stmt_ctx.h"
+
 const char *str_stmt_label()
 {
 	return "label";
@@ -8,7 +12,10 @@ const char *str_stmt_label()
 
 void fold_stmt_label(stmt *s, stmt_fold_ctx_block *ctx)
 {
+	basic_blk *bb_label = bb_new(s->bits.label);
+
 	dynmap_set(
+			char *, basic_blk *,
 			ctx->func_ctx->gotos,
 			s->bits.label,
 			bb_label);

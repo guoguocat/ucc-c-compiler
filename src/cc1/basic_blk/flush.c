@@ -2,21 +2,21 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-#include "../../../util/where.h"
-#include "../../../util/dynarray.h"
-#include "../../../util/alloc.h"
-#include "../../../util/assert.h"
+#include "../../util/where.h"
+#include "../../util/dynarray.h"
+#include "../../util/alloc.h"
+#include "../../util/assert.h"
 
-#include "../../data_structs.h"
-#include "../../expr.h"
-#include "../../decl.h"
+#include "../data_structs.h"
+#include "../expr.h"
+#include "../decl.h"
 
-#include "../vstack.h"
+#include "../out/vstack.h"
 #include "defs.h"
 #include "flush.h"
 #include "io.h"
 
-#include "../impl_flow.h"
+#include "../out/impl_flow.h"
 
 /* TODO:
  *	UCC_ASSERT(out_vcount(bb_end) == 0, "non empty vstack after func gen");

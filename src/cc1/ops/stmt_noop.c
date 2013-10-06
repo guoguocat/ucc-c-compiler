@@ -9,6 +9,7 @@ const char *str_stmt_noop()
 void fold_stmt_noop(stmt *s, stmt_fold_ctx_block *ctx)
 {
 	(void)s;
+	(void)ctx;
 }
 
 basic_blk *gen_stmt_noop(stmt *s, basic_blk *bb)

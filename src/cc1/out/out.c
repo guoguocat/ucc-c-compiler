@@ -20,9 +20,9 @@
 #include "../opt.h"
 #include "../const.h"
 
-#include "basic_block/bb.h"
-#include "basic_block/io.h"
-#include "basic_block/defs.h"
+#include "../basic_blk/bb.h"
+#include "../basic_blk/io.h"
+#include "../basic_blk/defs.h"
 #include "out_state.h"
 
 #define v_check_type(t) if(!t) t = type_ref_cached_VOID_PTR()
@@ -1331,8 +1331,8 @@ void out_comment(basic_blk *bb, const char *fmt, ...)
 	va_end(l);
 }
 
-basic_blk *out_func_prologue(
-		char *spel,
+void out_func_prologue(
+		basic_blk *bb,
 		type_ref *rf,
 		int stack_res, int nargs, int variadic,
 		int arg_offsets[])
@@ -1350,13 +1350,11 @@ basic_blk *out_func_prologue(
 		bb = impl_func_prologue_save_variadic(bb, rf);
 
 	/* setup "pointers" to the right place in the stack */
-	ostate->stack_variadic_offset = ostate->stack_sz - platform_word_size();
-	ostate->stack_local_offset = ostate->stack_sz;
+	bb->ostate->stack_variadic_offset = bb->ostate->stack_sz - platform_word_size();
+	bb->ostate->stack_local_offset = bb->ostate->stack_sz;
 
 	if(stack_res)
 		v_alloc_stack(bb, stack_res, "local variables");
-
-	return bb;
 }
 
 void out_func_epilogue(basic_blk *bb, type_ref *rf)

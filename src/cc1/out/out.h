@@ -34,8 +34,8 @@ void out_change_type(basic_blk *, type_ref *) ucc_nonnull((1));
 void out_call(basic_blk *,
 		int nargs, type_ref *rt, type_ref *f) ucc_nonnull((3, 4));
 
-basic_blk *out_func_prologue(
-		char *spel,
+void out_func_prologue(
+		basic_blk *,
 		type_ref *rf,
 		int stack_res, int nargs, int variadic,
 		int arg_offsets[]);

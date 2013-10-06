@@ -19,7 +19,7 @@
 #include "out/out.h"
 #include "out/lbl.h"
 #include "out/asm.h"
-#include "out/basic_block/flush.h"
+#include "basic_blk/flush.h"
 #include "gen_style.h"
 
 basic_blk *gen_expr(expr *e, basic_blk *b_from)
@@ -93,6 +93,7 @@ void gen_asm_global(decl *d)
 		decl **aiter;
 		int *offsets;
 		symtable *arg_symtab;
+		basic_blk *bb_start, *bb_end;
 
 		if(!d->func_code)
 			return;
@@ -104,8 +105,10 @@ void gen_asm_global(decl *d)
 
 		offsets = nargs ? umalloc(nargs * sizeof *offsets) : NULL;
 
-		bb_start = out_func_prologue(
-				decl_asm_spel(d), d->ref,
+		bb_start = d->func_code->entry;
+
+		out_func_prologue(
+				bb_start, d->ref,
 				d->func_code->symtab->auto_total_size,
 				nargs,
 				is_vari = type_ref_is_variadic_func(d->ref),

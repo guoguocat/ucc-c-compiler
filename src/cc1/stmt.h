@@ -43,6 +43,9 @@ struct stmt
 		} goto_;
 	} bits;
 
+	/* entry + exit used to save continue/break or function-exit blocks */
+	basic_blk *entry, *exit;
+
 	int expr_no_pop; /* given to the last stmt in ({...}) */
 
 	int freestanding;     /* if this is freestanding, non-freestanding expressions inside are allowed */

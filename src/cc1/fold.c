@@ -23,6 +23,8 @@
 #include "funcargs.h"
 #include "out/lbl.h"
 
+#include "basic_blk/bb.h"
+
 #include "stmt_ctx.h"
 
 decl     *curdecl_func;

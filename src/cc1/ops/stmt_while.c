@@ -4,29 +4,35 @@
 #include "stmt_while.h"
 #include "stmt_if.h"
 #include "../out/lbl.h"
-#include "../out/basic_block/bb.h"
+#include "../basic_blk/bb.h"
+
+#include "../stmt_ctx.h"
 
 const char *str_stmt_while()
 {
 	return "while";
 }
 
-void fold_stmt_while(stmt *s, stmt_fold_ctx_block *ctx)
+void fold_stmt_while(stmt *s, stmt_fold_ctx_block *ctx_parent)
 {
+	stmt_fold_ctx_block ctx = { 0 };
 	symtable *stab = s->symtab;
 
-	flow_fold(s->flow, &stab);
+	STMT_CTX_NEST(ctx, ctx_parent);
 
-	s->lbl_break    = out_label_flow("while_break");
-	s->lbl_continue = out_label_flow("while_cont");
+	s->entry = ctx.blk_continue = bb_new("while_ent");
+	s->exit = ctx.blk_break = bb_new("while_brk");
+
+	flow_fold(s->flow, &stab, ctx_parent);
 
 	FOLD_EXPR(s->expr, stab);
+
 	fold_check_expr(
 			s->expr,
 			FOLD_CHK_NO_ST_UN | FOLD_CHK_BOOL,
 			s->f_str());
 
-	fold_stmt(s->lhs);
+	fold_stmt(s->lhs, &ctx);
 }
 
 basic_blk *gen_stmt_while(stmt *s, basic_blk *bb)

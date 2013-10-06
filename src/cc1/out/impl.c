@@ -9,8 +9,8 @@
 #include "impl.h"
 #include "out.h"
 
-#include "basic_block/io.h"
-#include "basic_block/defs.h"
+#include "../basic_blk/io.h"
+#include "../basic_blk/defs.h"
 
 #include "../cc1.h"
 

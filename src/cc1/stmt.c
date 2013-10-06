@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "../util/util.h"
 #include "../util/alloc.h"

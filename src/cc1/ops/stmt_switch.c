@@ -8,6 +8,9 @@
 #include "../../util/dynarray.h"
 #include "../out/lbl.h"
 
+#include "../stmt_ctx.h"
+#include "../basic_blk/bb.h"
+
 const char *str_stmt_switch()
 {
 	return "switch";
@@ -17,7 +20,7 @@ static void fold_switch_dups(stmt *sw)
 {
 	typedef int (*qsort_f)(const void *, const void *);
 
-	int n = dynarray_count(sw->codes);
+	int n = dynarray_count(sw->bits.codes);
 	struct
 	{
 		numeric start, end;
@@ -28,7 +31,7 @@ static void fold_switch_dups(stmt *sw)
 	int i;
 
 	/* gather all switch values */
-	for(i = 0, titer = sw->codes; titer && *titer; titer++){
+	for(i = 0, titer = sw->bits.codes; titer && *titer; titer++){
 		stmt *cse = *titer;
 
 		if(cse->expr->expr_is_default){
@@ -86,7 +89,7 @@ static void fold_switch_enum(stmt *sw, const type *enum_type)
 	int midx;
 
 	/* for each case/default/case_range... */
-	for(titer = sw->codes; titer && *titer; titer++){
+	for(titer = sw->bits.codes; titer && *titer; titer++){
 		stmt *cse = *titer;
 		integral_t v, w;
 
@@ -136,23 +139,27 @@ ret:
 	free(marks);
 }
 
-void fold_stmt_switch(stmt *s, stmt_fold_ctx_block *ctx)
+void fold_stmt_switch(stmt *s, stmt_fold_ctx_block *ctx_parent)
 {
 	symtable *stab = s->symtab;
+	stmt_fold_ctx_block ctx = { 0 };
 
-	flow_fold(s->flow, &stab);
+	STMT_CTX_NEST(ctx, ctx_parent);
 
-	s->lbl_break = out_label_flow("switch");
+	ctx.blk_break = bb_new("sw_brk");
+	ctx.curswitch = s;
+
+	flow_fold(s->flow, &stab, &ctx);
 
 	FOLD_EXPR(s->expr, stab);
 
 	fold_check_expr(s->expr, FOLD_CHK_INTEGRAL, "switch");
 
 	/* this folds sub-statements,
-	 * causing case: and default: to add themselves to ->parent->codes,
-	 * i.e. s->codes
+	 * causing case: and default: to add themselves to ->parent->bits.codes,
+	 * i.e. s->bits.codes
 	 */
-	fold_stmt(s->lhs);
+	fold_stmt(s->lhs, &ctx);
 
 	/* check for dups */
 	fold_switch_dups(s);
@@ -176,6 +183,7 @@ void fold_stmt_switch(stmt *s, stmt_fold_ctx_block *ctx)
 basic_blk *gen_stmt_switch(stmt *s, basic_blk *bb)
 {
 	stmt **titer, *tdefault;
+	const int vcount_start = bb_vcount(bb);
 
 	tdefault = NULL;
 
@@ -185,7 +193,7 @@ basic_blk *gen_stmt_switch(stmt *s, basic_blk *bb)
 
 	ICE("TODO: switch jumps");
 
-	for(titer = s->codes; titer && *titer; titer++){
+	for(titer = s->bits.codes; titer && *titer; titer++){
 		stmt *cse = *titer;
 		numeric iv;
 
@@ -233,14 +241,12 @@ basic_blk *gen_stmt_switch(stmt *s, basic_blk *bb)
 
 	out_pop(bb); /* free the value we switched on asap */
 
-	out_push_lbl(bb, tdefault ? tdefault->expr->bits.ident.spel : s->lbl_break, 0);
-	//out_jmp(bb);
-
-	/* out-stack must be empty from here on */
+	UCC_ASSERT(bb_vcount(bb) == vcount_start,
+			"vcount changed over switch()");
 
 	bb = gen_stmt(s->lhs, bb); /* the actual code inside the switch */
 
-	//out_label(bb, s->lbl_break);
+	bb_link_forward(bb, tdefault ? tdefault->entry : s->exit);
 
 	return bb;
 }

@@ -20,8 +20,8 @@
 #include "../cc1.h"
 #include "../funcargs.h"
 
-#include "basic_block/bb.h"
-#include "basic_block/defs.h"
+#include "../basic_blk/bb.h"
+#include "../basic_blk/defs.h"
 #include "out_state.h"
 
 #define NUM_FMT "%d"
