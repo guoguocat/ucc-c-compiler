@@ -3,8 +3,7 @@ STMT_DEFS(if);
 
 void flow_fold(
 		stmt_flow *flow,
-		symtable **pstab,
-		stmt_fold_ctx_block *ctx);
+		symtable **pstab);
 
 basic_blk *flow_gen(
 		stmt_flow *flow, symtable *stab,

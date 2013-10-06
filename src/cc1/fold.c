@@ -597,20 +597,6 @@ void fold_decl_global_init(decl *d, symtable *stab)
 	}
 }
 
-static void stmt_fctx_start(stmt_fold_ctx_function *fctx, basic_blk **bb_start, basic_blk **bb_end)
-{
-	*bb_start = bb_new("fn_start");
-	*bb_end   = bb_new("fn_end");
-
-	memset(fctx, 0, sizeof *fctx);
-	fctx->gotos = dynmap_new((dynmap_cmp_f *)strcmp);
-}
-
-static void stmt_fctx_free(stmt_fold_ctx_function *fctx)
-{
-	dynmap_free(fctx->gotos);
-}
-
 static void fold_func(decl *func_decl)
 {
 	if(func_decl->func_code){
@@ -648,18 +634,7 @@ static void fold_func(decl *func_decl)
 							i - arg_symtab->decls + 1, func_decl->spel);
 		}
 
-		{
-			stmt_fold_ctx_function fctx;
-			stmt_fold_ctx_block bctx = { 0 };
-
-			basic_blk *b_start, *b_end;
-
-			bctx.func_ctx = &fctx;
-
-			stmt_fctx_start(&fctx, &b_start, &b_end);
-			fold_stmt(func_decl->func_code, &bctx);
-			stmt_fctx_free(&fctx);
-		}
+		fold_stmt(func_decl->func_code);
 
 		/* now decls are folded, layout both parameters and local variables */
 		symtab_layout_decls(arg_symtab, 0);
@@ -825,7 +800,7 @@ void print_stab(symtable *st, int current, where *w)
 }
 #endif
 
-void fold_stmt(stmt *t, stmt_fold_ctx_block *ctx)
+void fold_stmt(stmt *t)
 {
 	UCC_ASSERT(t->symtab->parent, "symtab has no parent");
 
@@ -836,23 +811,7 @@ void fold_stmt(stmt *t, stmt_fold_ctx_block *ctx)
 	}
 #endif
 
-	t->f_fold(t, ctx);
-
-	UCC_ASSERT(t->entry && t->exit, "no entry/exit for %s", t->f_str());
-}
-
-void fold_stmt_and_add_to_curswitch(stmt *t, stmt_fold_ctx_block *ctx)
-{
-	fold_stmt(t->lhs, ctx); /* compound */
-
-	if(!ctx->curswitch)
-		die_at(&t->where, "%s not inside switch", t->f_str());
-
-	dynarray_add(&ctx->curswitch->bits.switch_cases, t);
-
-	/* we are compound, copy some attributes */
-	t->kills_below_code = t->lhs->kills_below_code;
-	/* TODO: copy ->freestanding? */
+	t->f_fold(t);
 }
 
 void fold_funcargs(funcargs *fargs, symtable *stab, type_ref *from)

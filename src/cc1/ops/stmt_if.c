@@ -12,7 +12,7 @@ const char *str_stmt_if()
 	return "if";
 }
 
-void flow_fold(stmt_flow *flow, symtable **pstab, stmt_fold_ctx_block *ctx)
+void flow_fold(stmt_flow *flow, symtable **pstab)
 {
 	if(flow){
 		decl **i;
@@ -37,7 +37,7 @@ void flow_fold(stmt_flow *flow, symtable **pstab, stmt_fold_ctx_block *ctx)
 		}
 
 		if(flow->init_blk)
-			fold_stmt(flow->init_blk, ctx);
+			fold_stmt(flow->init_blk);
 	}
 }
 
@@ -56,19 +56,19 @@ basic_blk *flow_gen(stmt_flow *flow, symtable *stab, basic_blk *bb)
 	return bb;
 }
 
-void fold_stmt_if(stmt *s, stmt_fold_ctx_block *ctx)
+void fold_stmt_if(stmt *s)
 {
 	symtable *stab = s->symtab;
 
-	flow_fold(s->flow, &stab, ctx);
+	flow_fold(s->flow, &stab);
 
 	FOLD_EXPR(s->expr, stab);
 
 	fold_check_expr(s->expr, FOLD_CHK_BOOL, s->f_str());
 
-	fold_stmt(s->lhs, ctx);
+	fold_stmt(s->lhs);
 	if(s->rhs)
-		fold_stmt(s->rhs, ctx);
+		fold_stmt(s->rhs);
 }
 
 basic_blk *gen_stmt_if(stmt *s, basic_blk *bb)

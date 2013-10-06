@@ -15,18 +15,24 @@ const char *str_stmt_for()
 	return "for";
 }
 
-void fold_stmt_for(stmt *s, stmt_fold_ctx_block *ctx_parent)
+void blockify_stmt_for(stmt *s, stmt_fold_ctx_block *ctx_parent)
 {
-	symtable *stab = NULL;
 	stmt_fold_ctx_block ctx = { 0 };
 
 	STMT_CTX_NEST(ctx, ctx_parent);
 
-	flow_fold(s->flow, &stab, &ctx);
-	UCC_ASSERT(stab, "fold_flow in for didn't pick up .flow");
-
 	ctx.blk_break = bb_new("for_brk");
 	ctx.blk_continue = bb_new("for_cntu");
+
+	ICE("TODO");
+}
+
+void fold_stmt_for(stmt *s)
+{
+	symtable *stab = NULL;
+
+	flow_fold(s->flow, &stab);
+	UCC_ASSERT(stab, "fold_flow in for didn't pick up .flow");
 
 #define FOLD_IF(x) if(x) FOLD_EXPR(x, stab)
 	FOLD_IF(s->flow->for_init);
@@ -40,7 +46,7 @@ void fold_stmt_for(stmt *s, stmt_fold_ctx_block *ctx_parent)
 				FOLD_CHK_NO_ST_UN | FOLD_CHK_BOOL,
 				"for-while");
 
-	fold_stmt(s->lhs, &ctx);
+	fold_stmt(s->lhs);
 }
 
 basic_blk *gen_stmt_for(stmt *s, basic_blk *bb)

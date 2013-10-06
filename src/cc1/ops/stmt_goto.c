@@ -12,20 +12,22 @@ const char *str_stmt_goto()
 	return "goto";
 }
 
-void fold_stmt_goto(stmt *s, stmt_fold_ctx_block *ctx)
+void blockify_stmt_goto(stmt *s, stmt_fold_ctx_block *ctx)
 {
-	if(s->expr){
+	basic_blk *target = dynmap_get(
+			char *, basic_blk *,
+			ctx->func_ctx->gotos, s->bits.goto_.lbl);
+
+	if(!target)
+		die_at(&s->where, "goto label \"%s\" not found", s->bits.goto_.lbl);
+
+	s->bits.goto_.blk = target;
+}
+
+void fold_stmt_goto(stmt *s)
+{
+	if(s->expr)
 		FOLD_EXPR(s->expr, s->symtab);
-	}else{
-		basic_blk *target = dynmap_get(
-				char *, basic_blk *,
-				ctx->func_ctx->gotos, s->bits.goto_.lbl);
-
-		if(!target)
-			die_at(&s->where, "goto label \"%s\" not found", s->bits.goto_.lbl);
-
-		s->bits.goto_.blk = target;
-	}
 }
 
 basic_blk *gen_stmt_goto(stmt *s, basic_blk *bb)

@@ -87,11 +87,9 @@ int decl_init_is_const(decl_init *dinit, symtable *stab)
 	switch(dinit->type){
 		case decl_init_scalar:
 		{
-			expr *e;
 			consty k;
 
-			e = FOLD_EXPR(dinit->bits.expr, stab);
-			const_fold(e, &k);
+			const_fold(dinit->bits.expr, &k);
 
 			return CONST_AT_COMPILE_TIME(k.type);
 		}

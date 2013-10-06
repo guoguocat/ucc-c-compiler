@@ -9,7 +9,11 @@ const char *str_stmt_case_range()
 	return "case_range";
 }
 
-void fold_stmt_case_range(stmt *s, stmt_fold_ctx_block *ctx)
+void blockify_stmt_case_range(stmt *s, stmt_fold_ctx_block *ctx)
+{
+}
+
+void fold_stmt_case_range(stmt *s)
 {
 	integral_t lv, rv;
 
@@ -29,7 +33,7 @@ void fold_stmt_case_range(stmt *s, stmt_fold_ctx_block *ctx)
 	if(lv >= rv)
 		die_at(&s->where, "case range %s", lv == rv ? "equal" : "inverse");
 
-	fold_stmt_and_add_to_curswitch(s, ctx);
+	fold_stmt_in_switch(s);
 }
 
 void mutate_stmt_case_range(stmt *s)

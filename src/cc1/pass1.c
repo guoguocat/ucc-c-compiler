@@ -21,6 +21,7 @@
 #include "cc1.h"
 #include "fold.h"
 #include "const.h"
+#include "blk.h"
 
 #include "pass1.h"
 
@@ -67,8 +68,14 @@ void parse_and_fold(symtable_global *globals)
 			link_gasms(&last_gasms, *new);
 
 			/* fold what we got */
-			for(di = new; di && *di; di++)
-				fold_decl_global(*di, current_scope);
+			for(di = new; di && *di; di++){
+				decl *d = *di;
+
+				fold_decl_global(d, current_scope);
+
+				if(DECL_IS_FUNC(d))
+					blockify_func(d);
+			}
 
 			dynarray_free(decl **, &new, NULL);
 		}

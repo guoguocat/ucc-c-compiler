@@ -4,8 +4,9 @@
 struct basic_blk;
 typedef struct stmt_fold_ctx_block stmt_fold_ctx_block;
 
-typedef void func_fold_stmt(stmt *, stmt_fold_ctx_block *ctx) ucc_nonnull();
-typedef struct basic_blk *func_gen_stmt(stmt *, struct basic_blk *) ucc_wur;
+typedef void func_fold_stmt(stmt *);
+typedef void func_block_stmt(stmt *, stmt_fold_ctx_block *ctx) ucc_nonnull();
+typedef basic_blk *func_gen_stmt(stmt *, basic_blk *) ucc_wur;
 typedef const char *func_str_stmt(void);
 typedef void func_mutate_stmt(stmt *);
 
@@ -17,6 +18,7 @@ struct stmt
 	where where;
 
 	func_fold_stmt     *f_fold;
+	func_block_stmt    *f_block;
 	func_gen_stmt      *f_gen;
 	func_str_stmt      *f_str;
 	func_passable_stmt *f_passable; /* can code get past this statement:
@@ -63,9 +65,10 @@ struct stmt_flow
 	expr *for_init, *for_while, *for_inc;
 };
 
-#define STMT_DEFS_NOGEN(ty)            \
-	func_fold_stmt   fold_stmt_ ## ty;   \
-	func_str_stmt    str_stmt_ ## ty;    \
+#define STMT_DEFS_NOGEN(ty)              \
+	func_fold_stmt   fold_stmt_ ## ty;     \
+	func_block_stmt  blockify_stmt_ ## ty; \
+	func_str_stmt    str_stmt_ ## ty;      \
 	func_mutate_stmt mutate_stmt_ ## ty
 
 #define STMT_DEFS(ty)                  \
@@ -103,31 +106,35 @@ struct stmt_flow
 #include "ops/stmt_while.h"
 #include "ops/stmt_continue.h"
 
-#define stmt_new_wrapper(type, stab) stmt_new(                \
-                                        fold_stmt_ ## type,   \
-                                        gen_stmt_ ## type,    \
-                                        style_stmt_ ## type,  \
-                                        str_stmt_ ## type,    \
-                                        mutate_stmt_ ## type, \
+#define stmt_new_wrapper(type, stab) stmt_new(                  \
+                                        fold_stmt_ ## type,     \
+                                        blockify_stmt_ ## type, \
+                                        gen_stmt_ ## type,      \
+                                        style_stmt_ ## type,    \
+                                        str_stmt_ ## type,      \
+                                        mutate_stmt_ ## type,   \
                                         stab)
 
-#define stmt_mutate_wrapper(s, type)    stmt_mutate(s,           \
-                                           fold_stmt_ ## type,   \
-                                           gen_stmt_ ## type,    \
-                                           style_stmt_ ## type,  \
-                                           str_stmt_ ## type,    \
+#define stmt_mutate_wrapper(s, type)    stmt_mutate(s,              \
+                                           fold_stmt_ ## type,      \
+                                           blockify_stmt_ ## type,  \
+                                           gen_stmt_ ## type,       \
+                                           style_stmt_ ## type,     \
+                                           str_stmt_ ## type,       \
                                            mutate_stmt_ ## type)
 
 #define stmt_kind(st, kind) ((st)->f_fold == fold_stmt_ ## kind)
 
 void stmt_mutate(stmt *,
 		func_fold_stmt *,
+		func_block_stmt *,
 		func_gen_stmt *g_asm,
 		func_gen_stmt *g_style,
 		func_str_stmt *,
 		func_mutate_stmt *);
 
 stmt *stmt_new(func_fold_stmt *,
+		func_block_stmt *,
 		func_gen_stmt *g_asm,
 		func_gen_stmt *g_style,
 		func_str_stmt *,

@@ -8,6 +8,7 @@
 #include "stmt_code.h"
 #include "../decl_init.h"
 #include "../fold_sym.h"
+#include "../blk.h"
 
 #include "../basic_blk/bb.h"
 #include "../stmt_ctx.h"
@@ -17,15 +18,31 @@ const char *str_stmt_code()
 	return "code";
 }
 
-void fold_stmt_code(stmt *s, stmt_fold_ctx_block *ctx)
+void blockify_stmt_code(stmt *s, stmt_fold_ctx_block *ctx)
+{
+	basic_blk *bb;
+	stmt **siter;
+
+	bb = s->entry = bb_new("code");
+
+	for(siter = s->bits.codes; siter && *siter; siter++){
+		stmt *st = *siter;
+
+		blockify_stmt(st, ctx);
+
+		bb_link_forward(bb, st->entry);
+		bb = st->exit;
+	}
+
+	s->exit = bb;
+}
+
+void fold_stmt_code(stmt *s)
 {
 	stmt **siter;
 	decl **diter;
 	stmt *init_blk = NULL;
 	int warned = 0;
-	basic_blk *bb;
-
-	bb = s->entry = bb_new("code");
 
 	/* local struct layout-ing */
 	/* we fold decls ourselves, to get their inits */
@@ -59,10 +76,7 @@ void fold_stmt_code(stmt *s, stmt_fold_ctx_block *ctx)
 	for(siter = s->bits.codes; siter && *siter; siter++){
 		stmt *const st = *siter;
 
-		EOF_WHERE(&st->where, fold_stmt(st, ctx));
-
-		bb_link_forward(bb, st->entry);
-		bb = st->exit;
+		EOF_WHERE(&st->where, fold_stmt(st));
 
 		/*
 		 * check for dead code
@@ -79,8 +93,6 @@ void fold_stmt_code(stmt *s, stmt_fold_ctx_block *ctx)
 			warned = 1;
 		}
 	}
-
-	s->exit = bb;
 }
 
 void gen_code_decls(symtable *stab)

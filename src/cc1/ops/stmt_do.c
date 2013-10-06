@@ -10,9 +10,13 @@ const char *str_stmt_do()
 	return "do";
 }
 
-void fold_stmt_do(stmt *s, stmt_fold_ctx_block *ctx)
+void blockify_stmt_do(stmt *s, stmt_fold_ctx_block *ctx)
 {
-	fold_stmt_while(s, ctx);
+}
+
+void fold_stmt_do(stmt *s)
+{
+	fold_stmt_while(s);
 }
 
 basic_blk *gen_stmt_do(stmt *s, basic_blk *bb)

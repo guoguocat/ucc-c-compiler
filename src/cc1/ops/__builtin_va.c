@@ -122,7 +122,7 @@ static void fold_va_start(expr *e, symtable *stab)
 
 
 		/* empty context, shouldn't need external refs */
-		fold_stmt(assigns, NULL);
+		fold_stmt(assigns);
 		e->bits.variadic_setup = assigns;
 	}
 #endif

@@ -15,7 +15,7 @@ OBJ_UTIL = \
 
 OBJ_SRC = \
 	str.o \
-	cc1.o pass1.o \
+	cc1.o pass1.o blk.o \
 	tree.o decl.o decl_init.o funcargs.o expr.o stmt.o \
 	type.o type_ref.o type_ref_is.o \
 	tokconv.o tokenise.o \

@@ -17,9 +17,14 @@ void fold_stmt_break_continue(stmt *t, basic_blk *jmp)
 	t->bits.blk_jmp = jmp;
 }
 
-void fold_stmt_break(stmt *t, stmt_fold_ctx_block *ctx)
+void blockify_stmt_break(stmt *t, stmt_fold_ctx_block *ctx)
 {
 	fold_stmt_break_continue(t, ctx->blk_break);
+}
+
+void fold_stmt_break(stmt *t)
+{
+	(void)t;
 }
 
 void mutate_stmt_break(stmt *s)

@@ -17,6 +17,7 @@ stmt_flow *stmt_flow_new(symtable *parent)
 
 void stmt_mutate(stmt *s,
 		func_fold_stmt *f_fold,
+		func_block_stmt *f_blk,
 		func_gen_stmt *f_gen,
 		func_gen_stmt *f_gen_style,
 		func_str_stmt *f_str,
@@ -25,6 +26,7 @@ void stmt_mutate(stmt *s,
 	memset(&s->bits, 0, sizeof s->bits);
 
 	s->f_fold = f_fold;
+	s->f_block = f_blk;
 
 	switch(cc1_backend){
 		case BACKEND_ASM:
@@ -51,6 +53,7 @@ void stmt_mutate(stmt *s,
 
 stmt *stmt_new(
 		func_fold_stmt *f_fold,
+		func_block_stmt *f_blk,
 		func_gen_stmt *f_gen,
 		func_gen_stmt *f_gen_style,
 		func_str_stmt *f_str,
@@ -63,7 +66,7 @@ stmt *stmt_new(
 	UCC_ASSERT(stab, "no symtable for statement");
 	s->symtab = stab;
 
-	stmt_mutate(s, f_fold, f_gen, f_gen_style, f_str, f_mutate);
+	stmt_mutate(s, f_fold, f_blk, f_gen, f_gen_style, f_str, f_mutate);
 
 	return s;
 }

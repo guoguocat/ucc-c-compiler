@@ -57,7 +57,8 @@ const char *decl_init_to_str(enum decl_init_type);
 int         decl_init_is_const(decl_init *dinit, symtable *stab);
 int         decl_init_is_zero(decl_init *dinit);
 
-void decl_init_brace_up_fold(decl *d, symtable *); /* normalises braces */
+/* normalise braces */
+void decl_init_brace_up_fold(decl *d, symtable *);
 
 /* used for default initialising tenatives */
 void decl_default_init(decl *d, symtable *stab);

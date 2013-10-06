@@ -44,6 +44,7 @@ typedef struct consty
 #include "basic_blk/tdefs.h"
 
 typedef void         func_fold(          expr *, symtable *);
+typedef basic_blk   *func_block(         expr *, basic_blk *);
 typedef basic_blk   *func_gen(           expr *, basic_blk *) ucc_wur;
 typedef basic_blk   *func_gen_lea(       expr *, basic_blk *) ucc_wur;
 typedef void         func_const(         expr *, consty *);
@@ -55,6 +56,7 @@ struct expr
 	where where;
 
 	func_fold        *f_fold;
+	func_block       *f_block;
 	func_gen         *f_gen;
 	func_str         *f_str;
 
@@ -157,6 +159,8 @@ struct expr
 
 	expr **funcargs;
 	stmt *code; /* ({ ... }), comp. lit. assignments */
+
+	basic_blk *entry, *exit;
 
 	/* type propagation */
 	type_ref *tree_type;

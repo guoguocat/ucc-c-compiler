@@ -10,10 +10,8 @@ const char *str_stmt_expr()
 	return "expr";
 }
 
-void fold_stmt_expr(stmt *s, stmt_fold_ctx_block *ctx)
+void fold_stmt_expr(stmt *s)
 {
-	(void)ctx; /* ignored, sub-code creates a fresh one */
-
 	FOLD_EXPR(s->expr, s->symtab);
 
 	if(!s->freestanding

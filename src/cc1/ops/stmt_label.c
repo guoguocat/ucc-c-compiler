@@ -10,8 +10,11 @@ const char *str_stmt_label()
 	return "label";
 }
 
-void fold_stmt_label(stmt *s, stmt_fold_ctx_block *ctx)
+void blockify_stmt_label(stmt *s, stmt_fold_ctx_block *ctx)
 {
+	/* FIXME: this should be done earlier, as we don't forward-declare labels */
+	ICE;
+
 	basic_blk *bb_label = bb_new(s->bits.label);
 
 	dynmap_set(
@@ -19,7 +22,10 @@ void fold_stmt_label(stmt *s, stmt_fold_ctx_block *ctx)
 			ctx->func_ctx->gotos,
 			s->bits.label,
 			bb_label);
+}
 
+void fold_stmt_label(stmt *s)
+{
 	fold_stmt(s->lhs, ctx); /* compound */
 }
 

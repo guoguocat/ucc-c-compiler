@@ -21,7 +21,7 @@ void fold_expr_stmt(expr *e, symtable *stab)
 		last_stmt->expr_no_pop = 1;
 	}
 
-	fold_stmt(e->code, NULL); /* fresh ctx for sub statements */
+	fold_stmt(e->code);
 
 	if(last && stmt_kind(last_stmt, expr)){
 		e->tree_type = last_stmt->expr->tree_type;
