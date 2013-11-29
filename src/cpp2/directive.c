@@ -500,6 +500,18 @@ void parse_directive(char *line)
 		goto fin;                    \
 	}
 
+	if(strstr(tokens[0]->w, "if")
+	|| strstr(tokens[0]->w, "endif")
+	|| strstr(tokens[0]->w, "else"))
+	{
+		where w; where_current(&w);
+		for(int i = 0; i < if_idx - !!strstr(tokens[0]->w, "endif"); i++)
+			fprintf(stderr, ".");
+		char *s = tokens_join(tokens);
+		fprintf(stderr, "#%s @ %s\n", s, where_str(&w));
+		free(s);
+	}
+
 	HANDLE(ifdef)
 	HANDLE(ifndef)
 	HANDLE(if)
@@ -535,5 +547,5 @@ void parse_internal_directive(char *line)
 void parse_end_validate()
 {
 	if(if_idx)
-		CPP_DIE("endif expected");
+		CPP_DIE("endif expected (nesting %d)", if_idx);
 }
