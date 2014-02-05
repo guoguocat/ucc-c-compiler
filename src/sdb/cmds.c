@@ -330,9 +330,10 @@ static int c_reg_write(tracee *t, char **argv)
 		return DISPATCH_REPROMPT;
 	}
 
-	reg_t v;
-	if(sscanf(argv[2], "%lu", &v) != 1){
-		warn("%s isn't a register value", argv[2]);
+	char *end;
+	reg_t v = strtol(argv[2], &end, /*any-base*/0);
+	if(*end){
+		warn("can't parse '%s'", argv[2]);
 		return DISPATCH_REPROMPT;
 	}
 
