@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 
@@ -52,6 +53,11 @@ sig_name(int sig)
 
 int sig_parse(const char *s)
 {
+	char *end;
+	int sig = strtol(s, &end, 0);
+	if(!*end)
+		return sig;
+
 	int off = !strncmp(s, "SIG", 3) ? 0 : 3;
 
 	for(int i = 0; i < N_SIGS; i++)
